@@ -1,0 +1,12 @@
+node_modules/
+.next/
+dist/
+.env
+!.env.example
+backend/uploads/
+backend/uploads-test/
+blockchain/artifacts/
+blockchain/cache/
+blockchain/deployments/
+*.log
+.DS_Store

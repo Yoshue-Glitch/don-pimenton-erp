@@ -1,0 +1,45 @@
+# DON PIMENTÓN ERP — entorno local completo (PostgreSQL + Hardhat + API + Web)
+#   docker compose up --build
+# Web: http://localhost:3000   API: http://localhost:4000   RPC: http://localhost:8545
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: donpimenton
+      POSTGRES_PASSWORD: donpimenton
+      POSTGRES_DB: donpimenton
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U donpimenton"]
+      interval: 5s
+      retries: 20
+
+  chain:
+    build: { context: ./blockchain }
+    ports: ["8545:8545"]
+
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql://donpimenton:donpimenton@db:5432/donpimenton?schema=public
+      CHAIN_RPC_URL: http://chain:8545
+      CHAIN_ARTIFACTS_DIR: /app/blockchain/artifacts/contracts
+      CHAIN_DEPLOYMENT_FILE: /app/blockchain/deployments/localhost.json
+      PORT: "4000"
+    ports: ["4000:4000"]
+    depends_on:
+      db: { condition: service_healthy }
+      chain: { condition: service_started }
+    volumes: [uploads:/app/backend/uploads]
+
+  web:
+    build:
+      context: ./frontend
+      args: { API_URL: http://api:4000 }
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  uploads:

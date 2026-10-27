@@ -1,0 +1,1361 @@
+// DON PIMENTÓN ERP — Modelo relacional (PostgreSQL)
+// Cantidades en kg: Decimal(14,3). Importes: Decimal(14,2). Tipo de cambio: Decimal(10,4).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================ SEGURIDAD
+
+model Area {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  projected Boolean  @default(false) // área proyectada (futura)
+  active    Boolean  @default(true)
+  users     User[]
+  workers   Worker[]
+  purchaseRequests PurchaseRequest[]
+  budgets   Budget[]
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  code        String           @unique
+  name        String
+  description String?
+  system      Boolean          @default(true)
+  permissions RolePermission[]
+  users       User[]
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  code        String           @unique // ej. "sales.write"
+  module      String
+  action      String
+  description String
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  name           String
+  passwordHash   String
+  roleId         Int
+  areaId         Int?
+  active         Boolean   @default(true)
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  role           Role      @relation(fields: [roleId], references: [id])
+  area           Area?     @relation(fields: [areaId], references: [id])
+  sessions       Session[]
+  auditLogs      AuditLog[]
+  movements      InventoryMovement[]
+  productionOrders ProductionOrder[]
+  inspections    QualityInspection[] @relation("inspector")
+  decisions      QualityInspection[] @relation("decider")
+  requests       PurchaseRequest[]   @relation("requester")
+  approvals      PurchaseRequest[]   @relation("approver")
+  adjustmentsRequested InventoryAdjustment[] @relation("adjRequester")
+  adjustmentsApproved  InventoryAdjustment[] @relation("adjApprover")
+  documents      Document[]
+  transactions   FinancialTransaction[]
+  chainTxs       BlockchainTransaction[]
+
+  @@index([roleId])
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    Int
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  ip        String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Sequence {
+  key   String @id
+  value Int    @default(0)
+}
+
+model IdempotencyKey {
+  key        String   @id
+  userId     Int?
+  route      String
+  statusCode Int
+  response   Json
+  createdAt  DateTime @default(now())
+}
+
+// ============================================================ RR.HH.
+
+enum ContractType {
+  INDEFINIDO
+  PLAZO_FIJO
+  TEMPORAL_COSECHA
+  LOCACION_SERVICIOS
+}
+
+model Worker {
+  id             Int          @id @default(autoincrement())
+  code           String       @unique
+  firstName      String
+  lastName       String
+  documentNumber String       @unique // dato personal: acceso restringido
+  phone          String?
+  email          String?
+  areaId         Int
+  position       String
+  hireDate       DateTime     @db.Date
+  contractType   ContractType
+  monthlySalary  Decimal      @db.Decimal(14, 2)
+  isTemporary    Boolean      @default(false)
+  active         Boolean      @default(true)
+  isDemo         Boolean      @default(true)
+  area           Area         @relation(fields: [areaId], references: [id])
+  contracts      WorkerContract[]
+  attendance     Attendance[]
+  leaves         LeaveRequest[]
+  trainings      TrainingParticipant[]
+  evaluations    Evaluation[]
+  parcels        Parcel[]
+
+  @@index([areaId])
+}
+
+model WorkerContract {
+  id           Int          @id @default(autoincrement())
+  workerId     Int
+  type         ContractType
+  startDate    DateTime     @db.Date
+  endDate      DateTime?    @db.Date
+  salary       Decimal      @db.Decimal(14, 2)
+  notes        String?
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  TARDANZA
+  FALTA
+  PERMISO
+  VACACIONES
+}
+
+model Attendance {
+  id       Int              @id @default(autoincrement())
+  workerId Int
+  date     DateTime         @db.Date
+  status   AttendanceStatus
+  hours    Decimal          @default(8) @db.Decimal(5, 2)
+  worker   Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+}
+
+enum ApprovalStatus {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+model LeaveRequest {
+  id        Int            @id @default(autoincrement())
+  workerId  Int
+  type      String         // VACACIONES, PERMISO, LICENCIA
+  startDate DateTime       @db.Date
+  endDate   DateTime       @db.Date
+  days      Int
+  status    ApprovalStatus @default(PENDIENTE)
+  notes     String?
+  worker    Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+model Training {
+  id           Int                   @id @default(autoincrement())
+  title        String
+  date         DateTime              @db.Date
+  hours        Decimal               @db.Decimal(5, 2)
+  provider     String?
+  topic        String?
+  participants TrainingParticipant[]
+}
+
+model TrainingParticipant {
+  trainingId Int
+  workerId   Int
+  passed     Boolean  @default(true)
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@id([trainingId, workerId])
+}
+
+model Evaluation {
+  id        Int      @id @default(autoincrement())
+  workerId  Int
+  period    String
+  score     Decimal  @db.Decimal(5, 2)
+  evaluator String
+  comments  String?
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================ AGRÍCOLA
+
+enum ParcelStatus {
+  ACTIVA
+  EN_DESCANSO
+  EN_PREPARACION
+  INACTIVA
+}
+
+model Parcel {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  name          String
+  location      String
+  areaHa        Decimal      @db.Decimal(10, 2)
+  cropType      String
+  responsibleId Int?
+  status        ParcelStatus @default(ACTIVA)
+  isDemo        Boolean      @default(true)
+  responsible   Worker?      @relation(fields: [responsibleId], references: [id], onDelete: SetNull)
+  campaigns     Campaign[]
+}
+
+enum CampaignStatus {
+  PLANIFICADA
+  EN_CURSO
+  COSECHADA
+  CERRADA
+}
+
+model Campaign {
+  id                Int            @id @default(autoincrement())
+  code              String         @unique
+  parcelId          Int
+  variety           String
+  sowingDate        DateTime       @db.Date
+  estHarvestDate    DateTime       @db.Date
+  actualHarvestDate DateTime?      @db.Date
+  estimatedYieldKg  Decimal        @db.Decimal(14, 3)
+  actualYieldKg     Decimal        @default(0) @db.Decimal(14, 3)
+  status            CampaignStatus @default(EN_CURSO)
+  notes             String?
+  isDemo            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  parcel            Parcel         @relation(fields: [parcelId], references: [id])
+  activities        AgriActivity[]
+  harvests          Harvest[]
+  lots              Lot[]
+  transactions      FinancialTransaction[]
+
+  @@index([parcelId])
+}
+
+enum AgriActivityType {
+  SIEMBRA
+  RIEGO
+  FERTILIZACION
+  CONTROL_PLAGAS
+  MANTENIMIENTO
+  COSECHA
+  OTRO
+}
+
+model AgriActivity {
+  id          Int              @id @default(autoincrement())
+  campaignId  Int
+  type        AgriActivityType
+  date        DateTime         @db.Date
+  description String
+  responsible String
+  productId   Int?             // insumo utilizado
+  quantity    Decimal?         @db.Decimal(14, 3)
+  cost        Decimal          @default(0) @db.Decimal(14, 2)
+  createdAt   DateTime         @default(now())
+  campaign    Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  product     Product?         @relation(fields: [productId], references: [id])
+
+  @@index([campaignId, date])
+}
+
+model Harvest {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  campaignId  Int
+  date        DateTime @db.Date
+  quantityKg  Decimal  @db.Decimal(14, 3)
+  notes       String?
+  sentToProcessing Boolean @default(false)
+  createdAt   DateTime @default(now())
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lot         Lot?
+
+  @@index([campaignId])
+}
+
+// ============================================================ PRODUCTOS / LOTES
+
+enum ProductType {
+  MATERIA_PRIMA
+  PRODUCTO_TERMINADO
+  INSUMO
+  EMPAQUE
+}
+
+model Product {
+  id             Int         @id @default(autoincrement())
+  code           String      @unique
+  name           String
+  type           ProductType
+  unit           String      // KG, UND, L
+  bagWeightKg    Decimal?    @db.Decimal(10, 3) // presentación en sacos (25 kg)
+  minStock       Decimal     @default(0) @db.Decimal(14, 3)
+  standardCost   Decimal     @default(0) @db.Decimal(14, 2)
+  salePricePerKg Decimal?    @db.Decimal(14, 2)
+  active         Boolean     @default(true)
+  lots           Lot[]
+  balances       InventoryBalance[]
+  movements      InventoryMovement[]
+  activities     AgriActivity[]
+  specs          QualitySpec[]
+  purchaseRequestItems PurchaseRequestItem[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  salesQuoteItems      SalesQuoteItem[]
+  salesOrderItems      SalesOrderItem[]
+  exportOrders         ExportOrder[]
+  adjustments          InventoryAdjustment[]
+}
+
+enum LotType {
+  MATERIA_PRIMA
+  PRODUCTO_TERMINADO
+}
+
+enum LotStatus {
+  REGISTRADO
+  EN_PROCESO
+  CONSUMIDO
+  EN_ALMACEN
+  AGOTADO
+  BLOQUEADO
+}
+
+enum QualityStatus {
+  PENDIENTE
+  EN_EVALUACION
+  APROBADO
+  RECHAZADO
+  CUARENTENA
+}
+
+enum ChainStatus {
+  NO_REGISTRADO
+  PENDIENTE
+  REGISTRADO
+  FALLIDO
+}
+
+model Lot {
+  id                Int           @id @default(autoincrement())
+  code              String        @unique
+  type              LotType
+  productId         Int
+  campaignId        Int?
+  harvestId         Int?          @unique
+  parentLotId       Int?          // lote de materia prima de origen
+  productionOrderId Int?
+  quantityKg        Decimal       @db.Decimal(14, 3) // cantidad inicial del lote
+  consumedKg        Decimal       @default(0) @db.Decimal(14, 3) // MP consumida en producción
+  bags              Int?
+  productionDate    DateTime      @db.Date
+  expiryDate        DateTime?     @db.Date
+  status            LotStatus     @default(REGISTRADO)
+  qualityStatus     QualityStatus @default(PENDIENTE)
+  unitCost          Decimal       @default(0) @db.Decimal(14, 4)
+  dataHash          String?       // SHA-256 de los datos del lote (0x…)
+  certHash          String?       // SHA-256 del COA / informe
+  chainStatus       ChainStatus   @default(NO_REGISTRADO)
+  chainTxHash       String?
+  isDemo            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  product           Product       @relation(fields: [productId], references: [id])
+  campaign          Campaign?     @relation(fields: [campaignId], references: [id])
+  harvest           Harvest?      @relation(fields: [harvestId], references: [id])
+  parentLot         Lot?          @relation("lotGenealogy", fields: [parentLotId], references: [id])
+  childLots         Lot[]         @relation("lotGenealogy")
+  productionOrder   ProductionOrder?  @relation("outputs", fields: [productionOrderId], references: [id])
+  consumedBy        ProductionOrder[] @relation("source")
+  inspections       QualityInspection[]
+  balances          InventoryBalance[]
+  movements         InventoryMovement[]
+  reservations      InventoryReservation[]
+  salesOrderItems   SalesOrderItem[]
+  agreements        SmartAgreement[]
+  exportOrders      ExportOrder[]
+  transactions      FinancialTransaction[]
+
+  @@index([type, qualityStatus])
+  @@index([parentLotId])
+}
+
+// ============================================================ PRODUCCIÓN
+
+enum ProductionStatus {
+  PLANIFICADA
+  EN_PROCESO
+  COMPLETADA
+  ANULADA
+}
+
+enum StageType {
+  RECEPCION
+  SELECCION
+  LAVADO_ACONDICIONAMIENTO
+  DESHIDRATACION
+  MOLIENDA
+  CONTROL_CALIDAD
+  ENVASADO
+  ALMACEN
+}
+
+model ProductionOrder {
+  id               Int              @id @default(autoincrement())
+  code             String           @unique
+  sourceLotId      Int
+  responsibleId    Int
+  startDate        DateTime
+  endDate          DateTime?
+  initialWeightKg  Decimal          @db.Decimal(14, 3)
+  finalWeightKg    Decimal?         @db.Decimal(14, 3)
+  wasteKg          Decimal?         @db.Decimal(14, 3)
+  yieldPct         Decimal?         @db.Decimal(7, 3)
+  dryingTempC      Decimal?         @db.Decimal(6, 2)
+  dryingHours      Decimal?         @db.Decimal(6, 2)
+  status           ProductionStatus @default(EN_PROCESO)
+  currentStage     StageType        @default(RECEPCION)
+  rawMaterialCost  Decimal          @default(0) @db.Decimal(14, 2)
+  laborCost        Decimal          @default(0) @db.Decimal(14, 2)
+  energyCost       Decimal          @default(0) @db.Decimal(14, 2)
+  packagingCost    Decimal          @default(0) @db.Decimal(14, 2)
+  otherCost        Decimal          @default(0) @db.Decimal(14, 2)
+  totalCost        Decimal          @default(0) @db.Decimal(14, 2)
+  observations     String?
+  isDemo           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  sourceLot        Lot              @relation("source", fields: [sourceLotId], references: [id])
+  responsible      User             @relation(fields: [responsibleId], references: [id])
+  stages           ProductionStage[]
+  outputLots       Lot[]            @relation("outputs")
+  transactions     FinancialTransaction[]
+
+  @@index([sourceLotId])
+  @@index([status])
+}
+
+model ProductionStage {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  stage       StageType
+  seq         Int
+  startedAt   DateTime?
+  completedAt DateTime?
+  inputKg     Decimal?  @db.Decimal(14, 3)
+  outputKg    Decimal?  @db.Decimal(14, 3)
+  temperatureC Decimal? @db.Decimal(6, 2)
+  durationH   Decimal?  @db.Decimal(6, 2)
+  responsible String?
+  notes       String?
+  order       ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, stage])
+}
+
+// ============================================================ CALIDAD
+
+model QualitySpec {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  customerId Int?      // null = especificación interna general
+  parameter  String    // HUMEDAD, COLOR_ASTA, GRANULOMETRIA
+  minValue   Decimal?  @db.Decimal(10, 3)
+  maxValue   Decimal?  @db.Decimal(10, 3)
+  unit       String
+  notes      String?
+  isDemo     Boolean   @default(true) // valores de demostración, NO límites regulatorios
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([productId, customerId])
+}
+
+enum LabResult {
+  PENDIENTE
+  CONFORME
+  NO_CONFORME
+}
+
+model QualityInspection {
+  id              Int           @id @default(autoincrement())
+  code            String        @unique
+  lotId           Int
+  inspectorId     Int
+  date            DateTime
+  moisturePct     Decimal?      @db.Decimal(6, 2)
+  astaColor       Decimal?      @db.Decimal(8, 2)
+  granulometry    Decimal?      @db.Decimal(6, 2) // % que pasa la malla indicada
+  granulometryMesh String?
+  microbiological LabResult     @default(PENDIENTE)
+  contaminants    LabResult     @default(PENDIENTE)
+  observations    String?
+  coaDocumentId   Int?
+  specCustomerId  Int?
+  specEvaluation  Json?
+  status          QualityStatus @default(EN_EVALUACION)
+  decidedById     Int?
+  decidedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  lot             Lot           @relation(fields: [lotId], references: [id])
+  inspector       User          @relation("inspector", fields: [inspectorId], references: [id])
+  decidedBy       User?         @relation("decider", fields: [decidedById], references: [id])
+  coaDocument     Document?     @relation(fields: [coaDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([lotId])
+}
+
+// ============================================================ INVENTARIOS
+
+model Warehouse {
+  id        Int                 @id @default(autoincrement())
+  code      String              @unique
+  name      String
+  address   String?
+  active    Boolean             @default(true)
+  locations WarehouseLocation[]
+  balances  InventoryBalance[]
+  movements InventoryMovement[]
+}
+
+model WarehouseLocation {
+  id          Int       @id @default(autoincrement())
+  warehouseId Int
+  code        String
+  name        String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, code])
+}
+
+/// Saldo por producto / almacén / lote. Las restricciones CHECK (>= 0) se
+/// añaden en la migración SQL para impedir stock negativo a nivel de BD.
+model InventoryBalance {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  warehouseId Int
+  lotId       Int?
+  availableKg Decimal   @default(0) @db.Decimal(14, 3)
+  reservedKg  Decimal   @default(0) @db.Decimal(14, 3)
+  quarantineKg Decimal  @default(0) @db.Decimal(14, 3)
+  updatedAt   DateTime  @updatedAt
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  lot         Lot?      @relation(fields: [lotId], references: [id])
+
+  @@index([productId])
+  @@index([lotId])
+}
+
+enum MovementType {
+  ENTRADA
+  SALIDA
+  RESERVA
+  LIBERACION_RESERVA
+  TRANSFERENCIA_SALIDA
+  TRANSFERENCIA_ENTRADA
+  AJUSTE_POSITIVO
+  AJUSTE_NEGATIVO
+  INGRESO_CUARENTENA
+  LIBERACION_CUARENTENA
+  BLOQUEO_CUARENTENA
+  CONSUMO_PRODUCCION
+  DEVOLUCION
+}
+
+model InventoryMovement {
+  id             Int          @id @default(autoincrement())
+  code           String       @unique
+  type           MovementType
+  productId      Int
+  warehouseId    Int
+  lotId          Int?
+  quantityKg     Decimal      @db.Decimal(14, 3)
+  bags           Decimal?     @db.Decimal(10, 2)
+  unitCost       Decimal      @default(0) @db.Decimal(14, 4)
+  balanceAfter   Decimal      @db.Decimal(14, 3) // saldo físico (disp.+res.+cuar.) del producto en el almacén
+  reason         String
+  referenceType  String
+  referenceCode  String
+  userId         Int
+  createdAt      DateTime     @default(now())
+  product        Product      @relation(fields: [productId], references: [id])
+  warehouse      Warehouse    @relation(fields: [warehouseId], references: [id])
+  lot            Lot?         @relation(fields: [lotId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@index([productId, warehouseId, createdAt])
+  @@index([lotId])
+  @@index([referenceType, referenceCode])
+}
+
+model InventoryAdjustment {
+  id            Int            @id @default(autoincrement())
+  code          String         @unique
+  productId     Int
+  warehouseId   Int
+  lotId         Int?
+  quantityKg    Decimal        @db.Decimal(14, 3) // positivo o negativo
+  reason        String
+  status        ApprovalStatus @default(PENDIENTE)
+  requestedById Int
+  approvedById  Int?
+  decidedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  product       Product        @relation(fields: [productId], references: [id])
+  requestedBy   User           @relation("adjRequester", fields: [requestedById], references: [id])
+  approvedBy    User?          @relation("adjApprover", fields: [approvedById], references: [id])
+}
+
+enum ReservationStatus {
+  ACTIVA
+  CONSUMIDA
+  LIBERADA
+}
+
+model InventoryReservation {
+  id          Int               @id @default(autoincrement())
+  orderItemId Int
+  lotId       Int
+  warehouseId Int
+  quantityKg  Decimal           @db.Decimal(14, 3)
+  status      ReservationStatus @default(ACTIVA)
+  createdAt   DateTime          @default(now())
+  orderItem   SalesOrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  lot         Lot               @relation(fields: [lotId], references: [id])
+
+  @@index([orderItemId])
+}
+
+// ============================================================ COMPRAS
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  ruc       String   @unique
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  address   String?
+  category  String
+  active    Boolean  @default(true)
+  isDemo    Boolean  @default(true)
+  quotes    SupplierQuote[]
+  orders    PurchaseOrder[]
+  payables  AccountPayable[]
+}
+
+enum PurchaseRequestStatus {
+  BORRADOR
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+  ORDENADA
+}
+
+model PurchaseRequest {
+  id            Int                   @id @default(autoincrement())
+  code          String                @unique
+  requestedById Int
+  areaId        Int?
+  date          DateTime
+  justification String
+  status        PurchaseRequestStatus @default(BORRADOR)
+  approvedById  Int?
+  decidedAt     DateTime?
+  decisionNote  String?
+  requestedBy   User                  @relation("requester", fields: [requestedById], references: [id])
+  approvedBy    User?                 @relation("approver", fields: [approvedById], references: [id])
+  area          Area?                 @relation(fields: [areaId], references: [id])
+  items         PurchaseRequestItem[]
+  quotes        SupplierQuote[]
+  orders        PurchaseOrder[]
+}
+
+model PurchaseRequestItem {
+  id             Int             @id @default(autoincrement())
+  requestId      Int
+  productId      Int
+  quantity       Decimal         @db.Decimal(14, 3)
+  estimatedPrice Decimal         @db.Decimal(14, 2)
+  request        PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id])
+}
+
+model SupplierQuote {
+  id           Int             @id @default(autoincrement())
+  code         String          @unique
+  requestId    Int
+  supplierId   Int
+  date         DateTime
+  currency     String          @default("PEN")
+  total        Decimal         @db.Decimal(14, 2)
+  deliveryDays Int
+  paymentTerms String?
+  notes        String?
+  selected     Boolean         @default(false)
+  request      PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  supplier     Supplier        @relation(fields: [supplierId], references: [id])
+}
+
+enum PurchaseOrderStatus {
+  EMITIDA
+  RECIBIDA_PARCIAL
+  RECIBIDA
+  CONFORME
+  PAGADA
+  ANULADA
+}
+
+model PurchaseOrder {
+  id           Int                 @id @default(autoincrement())
+  code         String              @unique
+  requestId    Int?
+  supplierId   Int
+  quoteId      Int?
+  date         DateTime
+  currency     String              @default("PEN")
+  exchangeRate Decimal             @default(1) @db.Decimal(10, 4)
+  subtotal     Decimal             @db.Decimal(14, 2)
+  tax          Decimal             @db.Decimal(14, 2)
+  total        Decimal             @db.Decimal(14, 2)
+  status       PurchaseOrderStatus @default(EMITIDA)
+  conformityAt DateTime?
+  smartAgreementId Int?
+  createdAt    DateTime            @default(now())
+  request      PurchaseRequest?    @relation(fields: [requestId], references: [id])
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  items        PurchaseOrderItem[]
+  receipts     GoodsReceipt[]
+  payables     AccountPayable[]
+}
+
+model PurchaseOrderItem {
+  id          Int           @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  quantity    Decimal       @db.Decimal(14, 3)
+  unitPrice   Decimal       @db.Decimal(14, 4)
+  receivedQty Decimal       @default(0) @db.Decimal(14, 3)
+  order       PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id])
+}
+
+model GoodsReceipt {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  orderId     Int
+  warehouseId Int
+  date        DateTime
+  receivedBy  String
+  notes       String?
+  items       Json          // [{orderItemId, quantity}]
+  order       PurchaseOrder @relation(fields: [orderId], references: [id])
+}
+
+enum PayableStatus {
+  PENDIENTE
+  PARCIAL
+  PAGADA
+}
+
+model AccountPayable {
+  id              Int           @id @default(autoincrement())
+  code            String        @unique
+  supplierId      Int
+  purchaseOrderId Int?
+  documentRef     String
+  issueDate       DateTime      @db.Date
+  dueDate         DateTime      @db.Date
+  currency        String        @default("PEN")
+  exchangeRate    Decimal       @default(1) @db.Decimal(10, 4)
+  amount          Decimal       @db.Decimal(14, 2)
+  paidAmount      Decimal       @default(0) @db.Decimal(14, 2)
+  status          PayableStatus @default(PENDIENTE)
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  transactions    FinancialTransaction[]
+}
+
+// ============================================================ VENTAS
+
+enum CustomerType {
+  NACIONAL
+  INTERNACIONAL
+}
+
+model Customer {
+  id             Int          @id @default(autoincrement())
+  code           String       @unique
+  type           CustomerType @default(NACIONAL)
+  documentType   String       // RUC, DNI, TAX_ID
+  documentNumber String
+  name           String
+  contact        String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  country        String       @default("Perú")
+  creditDays     Int          @default(0)
+  chainActor     String?      // identidad blockchain de demostración (p. ej. "buyer")
+  active         Boolean      @default(true)
+  isDemo         Boolean      @default(true)
+  quotes         SalesQuote[]
+  orders         SalesOrder[]
+  receivables    AccountReceivable[]
+  specs          QualitySpec[]
+  exportOrders   ExportOrder[]
+  agreements     SmartAgreement[]
+
+  @@unique([documentType, documentNumber])
+}
+
+enum SalesQuoteStatus {
+  BORRADOR
+  ENVIADA
+  ACEPTADA
+  RECHAZADA
+  CONVERTIDA
+}
+
+model SalesQuote {
+  id         Int              @id @default(autoincrement())
+  code       String           @unique
+  customerId Int
+  date       DateTime
+  validUntil DateTime         @db.Date
+  currency   String           @default("PEN")
+  priceIncludesTax Boolean    @default(true)
+  taxRate    Decimal          @db.Decimal(6, 4)
+  subtotal   Decimal          @db.Decimal(14, 2)
+  discount   Decimal          @db.Decimal(14, 2)
+  tax        Decimal          @db.Decimal(14, 2)
+  total      Decimal          @db.Decimal(14, 2)
+  status     SalesQuoteStatus @default(BORRADOR)
+  notes      String?
+  customer   Customer         @relation(fields: [customerId], references: [id])
+  items      SalesQuoteItem[]
+  orders     SalesOrder[]
+}
+
+model SalesQuoteItem {
+  id          Int        @id @default(autoincrement())
+  quoteId     Int
+  productId   Int
+  unit        String     // KG | SACO
+  quantity    Decimal    @db.Decimal(14, 3)
+  unitPrice   Decimal    @db.Decimal(14, 4)
+  discountPct Decimal    @default(0) @db.Decimal(6, 3)
+  quote       SalesQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product     Product    @relation(fields: [productId], references: [id])
+}
+
+enum SalesOrderStatus {
+  REGISTRADO
+  RESERVADO
+  DESPACHADO
+  ENTREGADO
+  COMPLETADO
+  ANULADO
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PARCIAL
+  COBRADO
+}
+
+model SalesOrder {
+  id               Int              @id @default(autoincrement())
+  code             String           @unique
+  customerId       Int
+  quoteId          Int?
+  date             DateTime
+  currency         String           @default("PEN")
+  exchangeRate     Decimal          @default(1) @db.Decimal(10, 4)
+  priceIncludesTax Boolean          @default(true)
+  taxRate          Decimal          @db.Decimal(6, 4)
+  subtotal         Decimal          @db.Decimal(14, 2)
+  discountTotal    Decimal          @db.Decimal(14, 2)
+  taxTotal         Decimal          @db.Decimal(14, 2)
+  total            Decimal          @db.Decimal(14, 2)
+  totalKg          Decimal          @db.Decimal(14, 3)
+  status           SalesOrderStatus @default(REGISTRADO)
+  paymentStatus    PaymentStatus    @default(PENDIENTE)
+  notes            String?
+  isDemo           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  customer         Customer         @relation(fields: [customerId], references: [id])
+  quote            SalesQuote?      @relation(fields: [quoteId], references: [id])
+  items            SalesOrderItem[]
+  dispatches       DispatchOrder[]
+  documents        SalesDocument[]
+  receivables      AccountReceivable[]
+  agreements       SmartAgreement[]
+
+  @@index([customerId])
+  @@index([date])
+}
+
+model SalesOrderItem {
+  id          Int        @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  lotId       Int?
+  unit        String     // KG | SACO
+  quantity    Decimal    @db.Decimal(14, 3)
+  quantityKg  Decimal    @db.Decimal(14, 3)
+  unitPrice   Decimal    @db.Decimal(14, 4)
+  discountPct Decimal    @default(0) @db.Decimal(6, 3)
+  lineTotal   Decimal    @db.Decimal(14, 2)
+  order       SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product    @relation(fields: [productId], references: [id])
+  lot         Lot?       @relation(fields: [lotId], references: [id])
+  reservations InventoryReservation[]
+}
+
+/// Comprobante INTERNO de demostración — sin validez tributaria (no es CPE SUNAT).
+model SalesDocument {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique
+  orderId   Int
+  type      String     @default("COMPROBANTE_INTERNO_DEMO")
+  issueDate DateTime
+  total     Decimal    @db.Decimal(14, 2)
+  currency  String
+  legalNote String     @default("Documento interno de demostración. No es un comprobante de pago electrónico ni tiene validez tributaria ante SUNAT.")
+  einvoiceStatus String @default("NO_ENVIADO") // integración futura con OSE/PSE
+  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model AccountReceivable {
+  id           Int           @id @default(autoincrement())
+  code         String        @unique
+  customerId   Int
+  salesOrderId Int?
+  exportOrderId Int?
+  documentRef  String
+  issueDate    DateTime      @db.Date
+  dueDate      DateTime      @db.Date
+  currency     String        @default("PEN")
+  exchangeRate Decimal       @default(1) @db.Decimal(10, 4)
+  amount       Decimal       @db.Decimal(14, 2)
+  collected    Decimal       @default(0) @db.Decimal(14, 2)
+  status       PaymentStatus @default(PENDIENTE)
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  salesOrder   SalesOrder?   @relation(fields: [salesOrderId], references: [id])
+  exportOrder  ExportOrder?  @relation(fields: [exportOrderId], references: [id])
+  transactions FinancialTransaction[]
+}
+
+// ============================================================ LOGÍSTICA
+
+model Carrier {
+  id       Int             @id @default(autoincrement())
+  ruc      String          @unique
+  name     String
+  phone    String?
+  active   Boolean         @default(true)
+  vehicles Vehicle[]
+  dispatches DispatchOrder[]
+}
+
+model Vehicle {
+  id         Int             @id @default(autoincrement())
+  plate      String          @unique
+  carrierId  Int
+  type       String
+  capacityKg Decimal         @db.Decimal(14, 3)
+  carrier    Carrier         @relation(fields: [carrierId], references: [id])
+  dispatches DispatchOrder[]
+}
+
+enum DispatchStatus {
+  PREPARACION
+  DESPACHADO
+  EN_TRANSITO
+  ENTREGADO
+  CONFORME
+}
+
+model DispatchOrder {
+  id               Int            @id @default(autoincrement())
+  code             String         @unique
+  salesOrderId     Int
+  carrierId        Int
+  vehicleId        Int
+  weightKg         Decimal        @db.Decimal(14, 3)
+  destination      String
+  departureAt      DateTime?
+  deliveredAt      DateTime?
+  receivedBy       String?
+  evidenceDocId    Int?
+  status           DispatchStatus @default(PREPARACION)
+  inventoryPosted  Boolean        @default(false) // evita doble descuento
+  notes            String?
+  createdAt        DateTime       @default(now())
+  salesOrder       SalesOrder     @relation(fields: [salesOrderId], references: [id])
+  carrier          Carrier        @relation(fields: [carrierId], references: [id])
+  vehicle          Vehicle        @relation(fields: [vehicleId], references: [id])
+  evidenceDoc      Document?      @relation(fields: [evidenceDocId], references: [id], onDelete: SetNull)
+
+  @@index([salesOrderId])
+}
+
+// ============================================================ DOCUMENTOS
+
+enum DocumentType {
+  COA
+  INFORME_CALIDAD
+  FACTURA_COMERCIAL
+  PACKING_LIST
+  CERTIFICADO
+  DOC_TRANSPORTE
+  DOC_ADUANERO
+  EVIDENCIA_ENTREGA
+  CONTRATO
+  OTRO
+}
+
+model Document {
+  id           Int          @id @default(autoincrement())
+  code         String       @unique
+  title        String
+  type         DocumentType
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  storagePath  String
+  entityType   String
+  entityId     String
+  uploadedById Int
+  createdAt    DateTime     @default(now())
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+  inspections  QualityInspection[]
+  dispatches   DispatchOrder[]
+  requirements ExportRequirement[]
+
+  @@index([entityType, entityId])
+}
+
+// ============================================================ EXPORTACIONES
+
+model ExportPartner {
+  id       Int           @id @default(autoincrement())
+  name     String
+  ruc      String?       @unique
+  country  String
+  contact  String?
+  email    String?
+  services String
+  active   Boolean       @default(true)
+  orders   ExportOrder[]
+}
+
+enum ExportMode {
+  INDIRECTA
+  DIRECTA
+}
+
+enum ExportStatus {
+  BORRADOR
+  CONFIRMADA
+  DOCUMENTACION
+  EMBARCADA
+  EN_TRANSITO
+  ENTREGADA
+  COBRADA
+  ANULADA
+}
+
+model ExportOrder {
+  id                 Int          @id @default(autoincrement())
+  code               String       @unique
+  customerId         Int
+  partnerId          Int?
+  mode               ExportMode
+  destinationCountry String
+  incoterm           String
+  incotermVersion    String       @default("Incoterms® 2020")
+  currency           String       @default("USD")
+  exchangeRate       Decimal      @db.Decimal(10, 4)
+  productId          Int
+  lotId              Int?
+  netWeightKg        Decimal      @db.Decimal(14, 3)
+  grossWeightKg      Decimal      @db.Decimal(14, 3)
+  amount             Decimal      @db.Decimal(14, 2)
+  logisticsCost      Decimal      @default(0) @db.Decimal(14, 2)
+  etd                DateTime?    @db.Date
+  eta                DateTime?    @db.Date
+  status             ExportStatus @default(BORRADOR)
+  collectedAmount    Decimal      @default(0) @db.Decimal(14, 2)
+  notes              String?
+  isDemo             Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  customer           Customer     @relation(fields: [customerId], references: [id])
+  partner            ExportPartner? @relation(fields: [partnerId], references: [id])
+  product            Product      @relation(fields: [productId], references: [id])
+  lot                Lot?         @relation(fields: [lotId], references: [id])
+  requirements       ExportRequirement[]
+  receivables        AccountReceivable[]
+}
+
+enum RequirementStatus {
+  PENDIENTE
+  ADJUNTADO
+  VERIFICADO
+  NO_APLICA
+}
+
+model ExportRequirement {
+  id            Int               @id @default(autoincrement())
+  exportOrderId Int
+  docType       DocumentType
+  name          String
+  mandatory     Boolean           @default(true)
+  status        RequirementStatus @default(PENDIENTE)
+  documentId    Int?
+  verifiedBy    String?
+  verifiedAt    DateTime?
+  notes         String?
+  exportOrder   ExportOrder       @relation(fields: [exportOrderId], references: [id], onDelete: Cascade)
+  document      Document?         @relation(fields: [documentId], references: [id], onDelete: SetNull)
+}
+
+// ============================================================ FINANZAS
+
+enum TxType {
+  INGRESO
+  EGRESO
+}
+
+model FinancialTransaction {
+  id                Int        @id @default(autoincrement())
+  code              String     @unique
+  type              TxType
+  category          String
+  date              DateTime
+  description       String
+  currency          String     @default("PEN")
+  amount            Decimal    @db.Decimal(14, 2)
+  exchangeRate      Decimal    @default(1) @db.Decimal(10, 4)
+  amountPen         Decimal    @db.Decimal(14, 2)
+  campaignId        Int?
+  lotId             Int?
+  productionOrderId Int?
+  receivableId      Int?
+  payableId         Int?
+  referenceType     String?
+  referenceCode     String?
+  simulated         Boolean    @default(false) // p. ej. cobro con fondos de prueba blockchain
+  userId            Int
+  createdAt         DateTime   @default(now())
+  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+  lot               Lot?             @relation(fields: [lotId], references: [id])
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+  receivable        AccountReceivable? @relation(fields: [receivableId], references: [id])
+  payable           AccountPayable?    @relation(fields: [payableId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
+
+  @@index([date])
+  @@index([type, category])
+}
+
+model Budget {
+  id        Int     @id @default(autoincrement())
+  year      Int
+  month     Int
+  areaId    Int?
+  category  String
+  type      TxType
+  amountPen Decimal @db.Decimal(14, 2)
+  area      Area?   @relation(fields: [areaId], references: [id])
+
+  @@unique([year, month, category, type])
+}
+
+model ExchangeRate {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @db.Date
+  currency String
+  rate     Decimal  @db.Decimal(10, 4) // PEN por unidad de moneda
+  source   String   @default("Manual (demo)")
+
+  @@unique([date, currency])
+}
+
+// ============================================================ BLOCKCHAIN
+
+model ChainDeployment {
+  id           Int      @id @default(autoincrement())
+  contractName String
+  address      String
+  chainId      Int
+  deployBlock  Int
+  deployTxHash String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([contractName, active])
+}
+
+enum AgreementStatus {
+  BORRADOR
+  PROPUESTO
+  ACEPTADO
+  FONDEADO
+  EJECUTADO
+  CANCELADO
+  REEMBOLSADO
+  EN_DISPUTA
+}
+
+model SmartAgreement {
+  id                Int             @id @default(autoincrement())
+  code              String          @unique // identificador on-chain
+  contractAddress   String?
+  lotId             Int
+  customerId        Int
+  salesOrderId      Int?
+  sellerAddress     String
+  buyerAddress      String
+  quantityKg        Decimal         @db.Decimal(14, 3)
+  amountWei         String
+  referencePen      Decimal         @db.Decimal(14, 2)
+  deadline          DateTime
+  status            AgreementStatus @default(BORRADOR)
+  qualityState      String          @default("PENDIENTE")
+  deliveryState     String          @default("PENDIENTE")
+  lastSyncedAt      DateTime?
+  createdAt         DateTime        @default(now())
+  lot               Lot             @relation(fields: [lotId], references: [id])
+  customer          Customer        @relation(fields: [customerId], references: [id])
+  salesOrder        SalesOrder?     @relation(fields: [salesOrderId], references: [id])
+}
+
+enum ChainTxStatus {
+  PENDIENTE
+  CONFIRMADA
+  FALLIDA
+}
+
+model BlockchainTransaction {
+  id              Int           @id @default(autoincrement())
+  txHash          String?       @unique
+  contractName    String
+  contractAddress String
+  functionName    String
+  args            Json
+  actor           String        // rol on-chain que firmó (seller, buyer, quality…)
+  fromAddress     String
+  valueWei        String        @default("0")
+  status          ChainTxStatus @default(PENDIENTE)
+  blockNumber     Int?
+  gasUsed         String?
+  errorName       String?
+  errorMessage    String?
+  minedRevert     Boolean       @default(false) // true = minada y revertida; false = rechazada antes de minar
+  entityType      String?
+  entityCode      String?
+  scenario        String?
+  userId          Int?
+  createdAt       DateTime      @default(now())
+  confirmedAt     DateTime?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  events          BlockchainEvent[]
+
+  @@index([status])
+  @@index([entityType, entityCode])
+}
+
+model BlockchainEvent {
+  id              Int      @id @default(autoincrement())
+  txHash          String
+  logIndex        Int
+  blockNumber     Int
+  contractName    String
+  contractAddress String
+  eventName       String
+  args            Json
+  transactionId   Int?
+  createdAt       DateTime @default(now())
+  transaction     BlockchainTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([txHash, logIndex])
+}
+
+model DemoRun {
+  id         Int       @id @default(autoincrement())
+  scenario   String
+  status     String
+  steps      Json
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+}

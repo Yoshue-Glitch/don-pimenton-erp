@@ -1,0 +1,5 @@
+**/node_modules
+**/.next
+backend/uploads*
+blockchain/artifacts
+blockchain/cache

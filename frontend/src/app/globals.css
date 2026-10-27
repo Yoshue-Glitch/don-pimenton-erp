@@ -1,0 +1,28 @@
+@import "@fontsource-variable/inter";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 248 245 238;     /* crema #F8F5EE */
+  --card: 255 255 255;
+  --line: 230 224 212;
+  --fg: 38 50 56;        /* gris oscuro #263238 */
+  --muted: 107 114 128;
+  --soft: 243 239 230;
+}
+.dark {
+  --bg: 17 22 25;
+  --card: 27 33 37;
+  --line: 48 56 61;
+  --fg: 233 236 238;
+  --muted: 150 160 167;
+  --soft: 36 43 48;
+}
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { @apply bg-bg text-fg antialiased; font-feature-settings: "cv11", "ss01"; }
+::selection { background: rgba(165, 42, 42, .18); }
+.recharts-cartesian-grid line { stroke: rgb(var(--line)); }
+.recharts-text { fill: rgb(var(--muted)); font-size: 11px; }
+.recharts-tooltip-wrapper .recharts-default-tooltip { background: rgb(var(--card)) !important; border: 1px solid rgb(var(--line)) !important; border-radius: 10px; }
