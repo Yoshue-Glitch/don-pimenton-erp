@@ -168,3 +168,9 @@ Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUE
 - Un acuerdo inteligente cubre un lote completo de un pedido (simplificación de la demo).
 - No se incluyen pruebas de carga ni pentesting.
 - El costo laboral de RR.HH. es la remuneración bruta registrada, sin cargas sociales.
+
+## Capturas
+
+![Dashboard](docs/capturas/dashboard.png)
+
+Más capturas y un PDF de trazabilidad de ejemplo en [`docs/capturas`](docs/capturas).
