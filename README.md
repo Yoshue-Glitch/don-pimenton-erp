@@ -24,6 +24,23 @@ Moneda principal: **PEN (S/)**; operaciones internacionales en **USD** con tipo 
 
 ## Instalación y ejecución
 
+### Publicar en internet (Render)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Yoshue-Glitch/don-pimenton-erp)
+
+El archivo `render.yaml` crea un servicio web con el `Dockerfile` de la raíz (Hardhat + API + Web en un solo contenedor) y una base PostgreSQL gestionada. Pasos:
+
+1. Cree una cuenta en https://render.com con su cuenta de GitHub.
+2. Pulse el botón de arriba (o en Render: *New → Blueprint* y elija este repositorio) y confirme con *Apply*.
+3. Espere a que termine la construcción (≈ 10 min la primera vez). La URL pública aparece en el servicio `don-pimenton-erp` (p. ej. `https://don-pimenton-erp.onrender.com`).
+4. La contraseña de los usuarios demo **no** es la documentada: Render genera una aleatoria. Véala en *don-pimenton-erp → Environment → DEMO_PASSWORD*.
+
+Comportamiento en el plan gratuito (verificado simulando el contenedor):
+- El servicio se suspende tras un rato sin visitas; la siguiente visita tarda ~1 min en despertar.
+- La red Hardhat vive en memoria: al reiniciarse el contenedor, la API detecta la red nueva, **archiva** el historial blockchain anterior (marcado "red reiniciada"), marca los lotes como no registrados y redespliega los contratos. Los datos del ERP se conservan en PostgreSQL. Para volver a tener el escenario completo en cadena use *Demostración → Reiniciar demostración*.
+- El contenedor usa ≈ 300 MB de RAM (límite gratuito: 512 MB). Si Render informa falta de memoria, cambie el plan del servicio a *Starter*.
+- Las condiciones del plan gratuito (p. ej. caducidad de la base de datos gratuita) las fija Render y pueden cambiar; revíselas en su panel.
+
 ### Opción A — Docker Compose
 
 ```bash

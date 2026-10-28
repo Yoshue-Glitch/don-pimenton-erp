@@ -1,0 +1,20 @@
+# Blueprint de Render: https://render.com/deploy?repo=https://github.com/Yoshue-Glitch/don-pimenton-erp
+services:
+  - type: web
+    name: don-pimenton-erp
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # si el plan gratuito se queda sin memoria, use "starter"
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: don-pimenton-db, property: connectionString }
+      - key: DEMO_PASSWORD     # contraseña de los 10 usuarios demo (visible en el panel de Render)
+        generateValue: true
+      - key: SECURE_COOKIES
+        value: "1"
+databases:
+  - name: don-pimenton-db
+    plan: free
+    databaseName: donpimenton
+    user: donpimenton

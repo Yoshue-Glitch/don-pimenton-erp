@@ -15,7 +15,8 @@ import { createSalesOrder, collectReceivable } from "../modules/sales";
 import { createDispatch, advanceDispatch } from "../modules/logistics";
 import { applyMovement } from "../modules/inventory.service";
 
-export const DEMO_PASSWORD = "DonPimenton#2026";
+// En un despliegue público defina DEMO_PASSWORD para no usar la contraseña documentada.
+export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "DonPimenton#2026";
 
 export const DEMO_USERS = [
   { email: "admin@donpimenton.pe", name: "Ana Torres (Administradora)", role: "ADMIN", area: "GER" },

@@ -244,9 +244,32 @@ export async function syncEvents() {
 }
 
 /** Despliega ambos contratos en la red local y asigna los roles a las cuentas demo. */
+/**
+ * Si la red local se reinició (los contratos activos ya no tienen código), el
+ * historial guardado pertenece a una cadena que ya no existe. Una red Hardhat
+ * nueva reproduce los mismos hashes, así que se archiva ese historial para no
+ * confundirlo con el nuevo y se marcan los lotes como no registrados.
+ */
+async function archiveLostChain() {
+  const active = await prisma.chainDeployment.findMany({ where: { active: true } });
+  if (!active.length) return false;
+  const codes = await Promise.all(active.map((d) => getProvider().getCode(d.address)));
+  if (codes.some((c) => c !== "0x")) return false;
+  const tag = ` (red reiniciada ${new Date().toISOString().slice(0, 19)})`;
+  await prisma.$transaction([
+    prisma.$executeRaw`UPDATE "BlockchainTransaction" SET "txHash" = "txHash" || ${tag} WHERE "txHash" IS NOT NULL AND "txHash" NOT LIKE '%(red reiniciada%'`,
+    prisma.$executeRaw`UPDATE "BlockchainEvent" SET "txHash" = "txHash" || ${tag} WHERE "txHash" NOT LIKE '%(red reiniciada%'`,
+    prisma.lot.updateMany({ where: { chainStatus: { not: "NO_REGISTRADO" } }, data: { chainStatus: "NO_REGISTRADO", chainTxHash: null } }),
+    prisma.smartAgreement.updateMany({ where: { status: { in: ["BORRADOR", "PROPUESTO", "ACEPTADO", "FONDEADO", "EN_DISPUTA"] } }, data: { status: "CANCELADO" } }),
+    prisma.auditLog.create({ data: { action: "RED_BLOCKCHAIN_REINICIADA", entity: "blockchain", details: { contratos: active.map((d) => d.address) } } }),
+  ]);
+  return true;
+}
+
 export async function deployContracts(userId?: number) {
   await assertLocalChain();
   return serial(async () => {
+    if (await archiveLostChain()) console.log("Red local reiniciada: historial anterior archivado");
     const admin = signer("admin");
     const deployOne = async (name: ContractName, args: unknown[]) => {
       const a = artifact(name);

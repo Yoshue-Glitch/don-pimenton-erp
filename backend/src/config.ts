@@ -7,7 +7,7 @@ export const config = {
   port: Number(process.env.PORT || 4000),
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 8),
   cookieName: "dp_session",
-  secureCookies: process.env.NODE_ENV === "production",
+  secureCookies: process.env.SECURE_COOKIES === "1",
   chainRpcUrl: process.env.CHAIN_RPC_URL || "http://127.0.0.1:8545",
   deploymentFile: path.resolve(root, process.env.CHAIN_DEPLOYMENT_FILE || "../blockchain/deployments/localhost.json"),
   artifactsDir: path.resolve(root, process.env.CHAIN_ARTIFACTS_DIR || "../blockchain/artifacts/contracts"),

@@ -16,7 +16,7 @@ const assert = (c, m) => { if (!c) throw new Error("FALLO: " + m); passed++; con
 async function login(p, email) {
   await p.goto(`${BASE}/login`);
   await p.fill("input[type=email]", email);
-  await p.fill("input[type=password]", "DonPimenton#2026");
+  await p.fill("input[type=password]", process.env.E2E_PASSWORD || "DonPimenton#2026");
   await p.click("button[type=submit]");
   await p.waitForURL(`${BASE}/`);
 }

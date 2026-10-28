@@ -99,6 +99,11 @@ authRouter.post("/login", ah(async (req, res) => {
   res.json({ user: serializeUser(user!), token: req.headers["x-return-token"] === "1" ? token : undefined });
 }));
 
+/** Pista de acceso de la pantalla de login: solo muestra la contraseña si es la documentada. */
+authRouter.get("/demo-info", (_req, res) => {
+  res.json({ showPassword: !process.env.DEMO_PASSWORD, password: process.env.DEMO_PASSWORD ? null : "DonPimenton#2026" });
+});
+
 authRouter.post("/logout", ah(async (req, res) => {
   const token = req.cookies?.[config.cookieName];
   if (token) await prisma.session.updateMany({ where: { tokenHash: sha256Hex(token) }, data: { revokedAt: new Date() } });

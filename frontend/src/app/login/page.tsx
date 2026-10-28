@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [hint, setHint] = React.useState<{ showPassword: boolean; password: string | null } | null>(null);
+  React.useEffect(() => { api("/auth/demo-info").then(setHint).catch(() => setHint(null)); }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +65,7 @@ export default function LoginPage() {
           </form>
           <div className="mt-8 rounded-xl border border-line bg-card p-4">
             <p className="text-xs font-semibold text-fg">Usuarios de demostración</p>
-            <p className="mt-0.5 text-[11px] text-muted">Contraseña común: <code className="rounded bg-soft px-1">DonPimenton#2026</code></p>
+            <p className="mt-0.5 text-[11px] text-muted">{hint?.showPassword ? <>Contraseña común: <code className="rounded bg-soft px-1">{hint.password}</code></> : "Contraseña común: solicítela al administrador del despliegue."}</p>
             <div className="mt-2 grid grid-cols-1 gap-1">
               {DEMO.map(([e, r]) => (
                 <button key={e} type="button" onClick={() => setEmail(e)} className={`flex items-center justify-between rounded-md px-2 py-1 text-left text-[11px] hover:bg-soft ${email === e ? "bg-soft font-semibold" : ""}`}>
