@@ -61,7 +61,7 @@ async function runStep(n: number, userId: number): Promise<StepResult> {
           const camp = await tx.campaign.create({ data: { code: C.campaign, parcelId: parcel.id, variety: "Papri King", sowingDate: new Date("2026-04-15"), estHarvestDate: new Date("2026-10-01"), estimatedYieldKg: 1000, status: "EN_CURSO", notes: "Campaña de demostración del escenario integral" } });
           const acts: [any, string, string, number][] = [["SIEMBRA", "2026-04-15", "Trasplante de plantines", 180], ["RIEGO", "2026-05-20", "Riego por gravedad", 120], ["FERTILIZACION", "2026-06-10", "Fertilización NPK", 260], ["CONTROL_PLAGAS", "2026-07-15", "Control biológico de pulgón", 150], ["COSECHA", "2026-10-05", "Cosecha manual — personal temporal", 400]];
           for (const [type, date, description, cost] of acts) {
-            const a = await tx.agriActivity.create({ data: { campaignId: camp.id, type, date: new Date(date), description, responsible: "Responsable agrícola (demo)", cost } });
+            const a = await tx.agriActivity.create({ data: { campaignId: camp.id, type, date: new Date(date), description, responsible: "Área Agrícola", cost } });
             await tx.financialTransaction.create({ data: { code: `FIN-DEMO-${camp.id}-${a.id}`, type: "EGRESO", category: "COSTO_AGRICOLA", date: new Date(date), description: `${type} — ${C.campaign}: ${description}`, amount: cost, amountPen: cost, campaignId: camp.id, referenceType: "AGRI_ACTIVITY", referenceCode: `${C.campaign}#${a.id}`, userId } });
           }
           await audit(tx, userId, "CREAR", "campaña", camp.id, { code: C.campaign, demo: true });

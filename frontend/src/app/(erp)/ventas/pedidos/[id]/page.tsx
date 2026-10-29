@@ -25,7 +25,7 @@ export default function OrderPage() {
   return (
     <div className="space-y-4">
       <Link href="/ventas" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Ventas</Link>
-      <PageHeader title={`Pedido ${o.code}`} subtitle={`${o.customer.name} · ${date(o.date)}`} actions={<>
+      <PageHeader area="Comercial · Pedido" title={`Pedido ${o.code}`} subtitle={`${o.customer.name} · ${date(o.date)}`} actions={<>
         <StatusBadge status={o.status} /><StatusBadge status={o.paymentStatus} />
         {o.documents.length === 0 && o.status !== "ANULADO" && <Can perm="sales.write"><Button variant="outline" loading={busy === "doc"} onClick={() => act("doc", () => api(`/sales/orders/${id}/document`, { method: "POST" }), "Comprobante interno emitido")}><Receipt className="h-4 w-4" />Emitir comprobante interno</Button></Can>}
         {o.status === "RESERVADO" && o.dispatches.length === 0 && <Can perm="logistics.write"><Button variant="outline" onClick={() => router.push(`/logistica?nuevo=${o.id}`)}><Truck className="h-4 w-4" />Crear despacho</Button></Can>}

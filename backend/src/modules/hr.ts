@@ -18,20 +18,22 @@ function mask(w: any, req: any) {
 hrRouter.use("/workers", crud({
   model: "worker", entity: "trabajador", readPerm: "hr.read", writePerm: "hr.write",
   schema: z.object({
-    code: z.string().max(20).optional(), firstName: z.string().min(2).max(60), lastName: z.string().min(2).max(80),
+    code: z.string().max(20).optional(),
+    // el nombre es opcional: los puestos se identifican por cargo y área
+    firstName: z.string().min(2).max(60).nullable().optional().or(z.literal("")), lastName: z.string().min(2).max(80).nullable().optional().or(z.literal("")),
     documentNumber: z.string().regex(/^\d{8,12}$/, "Documento inválido"), phone: z.string().max(30).nullable().optional(), email: z.string().email().nullable().optional().or(z.literal("")),
     areaId: z.coerce.number().int().positive(), position: z.string().min(2).max(80), hireDate: z.coerce.date(),
     contractType: z.enum(["INDEFINIDO", "PLAZO_FIJO", "TEMPORAL_COSECHA", "LOCACION_SERVICIOS"]), monthlySalary: z.coerce.number().min(0),
     isTemporary: z.boolean().default(false), active: z.boolean().default(true),
   }),
-  search: ["code", "firstName", "lastName", "position"], filters: ["areaId", "isTemporary", "active", "contractType"], orderBy: { lastName: "asc" },
+  search: ["code", "firstName", "lastName", "position"], filters: ["areaId", "isTemporary", "active", "contractType"], orderBy: { code: "asc" },
   include: { area: { select: { name: true } } }, transform: mask,
   codePrefix: { field: "code", prefix: "TRB", year: false, pad: 4 },
 }));
 
 hrRouter.get("/attendance", requirePerm("hr.read"), ah(async (req, res) => {
   const date = req.query.date ? new Date(String(req.query.date)) : undefined;
-  res.json(await prisma.attendance.findMany({ where: date ? { date } : {}, orderBy: [{ date: "desc" }], take: 300, include: { worker: { select: { code: true, firstName: true, lastName: true } } } }));
+  res.json(await prisma.attendance.findMany({ where: date ? { date } : {}, orderBy: [{ date: "desc" }], take: 300, include: { worker: { select: { code: true, firstName: true, lastName: true, position: true } } } }));
 }));
 
 hrRouter.post("/attendance", requirePerm("hr.write"), ah(async (req, res) => {
@@ -41,7 +43,7 @@ hrRouter.post("/attendance", requirePerm("hr.write"), ah(async (req, res) => {
 }));
 
 hrRouter.get("/leaves", requirePerm("hr.read"), ah(async (_req, res) => {
-  res.json(await prisma.leaveRequest.findMany({ orderBy: { startDate: "desc" }, include: { worker: { select: { code: true, firstName: true, lastName: true } } } }));
+  res.json(await prisma.leaveRequest.findMany({ orderBy: { startDate: "desc" }, include: { worker: { select: { code: true, firstName: true, lastName: true, position: true } } } }));
 }));
 
 hrRouter.post("/leaves", requirePerm("hr.write"), ah(async (req, res) => {
@@ -59,7 +61,7 @@ hrRouter.post("/leaves/:id/decision", requirePerm("hr.write"), ah(async (req, re
 }));
 
 hrRouter.get("/trainings", requirePerm("hr.read"), ah(async (_req, res) => {
-  res.json(await prisma.training.findMany({ orderBy: { date: "desc" }, include: { participants: { include: { worker: { select: { firstName: true, lastName: true } } } } } }));
+  res.json(await prisma.training.findMany({ orderBy: { date: "desc" }, include: { participants: { include: { worker: { select: { firstName: true, lastName: true, position: true } } } } } }));
 }));
 
 hrRouter.post("/trainings", requirePerm("hr.write"), ah(async (req, res) => {

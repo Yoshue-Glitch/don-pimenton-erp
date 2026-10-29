@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   "blockchain.penPerTestEth": 1000, // S/ 1,000 de referencia = 1 ETH ficticio de red local
   "modules.enabled": {
     agricultura: true, produccion: true, calidad: true, inventario: true, compras: true, ventas: true,
-    logistica: true, finanzas: true, blockchain: true, exportaciones: true, rrhh: true,
+    logistica: true, finanzas: true, blockchain: true, exportaciones: true, rrhh: true, marketing: true,
   },
 };
 

@@ -10,6 +10,7 @@ import { Card, PageHeader, StatusBadge, Button, Tabs, Badge } from "@/components
 import { ServerTable, LocalTable } from "@/components/DataTable";
 import { CrudSection } from "@/components/Crud";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can } from "@/components/providers";
 import { OrderDialog } from "./OrderDialog";
 
@@ -24,8 +25,9 @@ function VentasInner() {
   const ar = useApi<any[]>("/sales/receivables", [rk]);
   return (
     <div className="space-y-4">
-      <PageHeader title="Ventas y clientes" subtitle="Clientes mayoristas, cotizaciones, pedidos con reserva de inventario, comprobantes internos y cobros" icon={<BadgeDollarSign className="h-5 w-5" />}
+      <PageHeader area="Comercial" title="Ventas nacionales y clientes" subtitle="Clientes mayoristas, cotizaciones, pedidos con reserva de inventario, comprobantes internos y cobros" icon={<BadgeDollarSign className="h-5 w-5" />}
         actions={<Can perm="sales.write"><Button variant="outline" onClick={() => setDlg("quote")}>Nueva cotización</Button><Button onClick={() => setDlg("order")}><Plus className="h-4 w-4" />Nuevo pedido</Button></Can>} />
+      <ModuleKpis module="ventas" reloadKey={rk} />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "pedidos", label: "Pedidos" }, { id: "cotizaciones", label: "Cotizaciones" }, { id: "clientes", label: "Clientes" }, { id: "cxc", label: "Cuentas por cobrar", count: (ar.data ?? []).filter((r) => r.status !== "COBRADO").length }]} />
       <Card>
         {tab === "pedidos" && <ServerTable path="/sales/orders" reloadKey={rk} onRowClick={(r: any) => router.push(`/ventas/pedidos/${r.id}`)}

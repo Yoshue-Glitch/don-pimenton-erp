@@ -24,7 +24,7 @@ export default function BlockchainPanel() {
   const sync = async () => { setBusy(true); try { const r = await api("/blockchain/sync-events", { method: "POST" }); toast.success("Eventos sincronizados", `${r.synced} eventos leídos de la red local`); setRk((k) => k + 1); } catch (e: any) { toast.error("Error", e.message); } finally { setBusy(false); } };
   return (
     <div className="space-y-4">
-      <PageHeader title="Blockchain & Smart Contracts — Don Pimentón" subtitle="Trazabilidad verificable de lotes y pagos condicionados en una red Ethereum LOCAL (Hardhat)" icon={<Link2 className="h-5 w-5" />}
+      <PageHeader area="Exportaciones · Blockchain" title="Panel blockchain y Smart Contracts" subtitle="Trazabilidad verificable de lotes y pagos condicionados en una red Ethereum LOCAL (Hardhat)" icon={<Link2 className="h-5 w-5" />}
         actions={<><Link href="/demo"><Button variant="secondary"><PlayCircle className="h-4 w-4" />Ejecutar demostración</Button></Link><Button variant="outline" loading={busy} onClick={sync}><RefreshCw className="h-4 w-4" />Sincronizar eventos</Button><Can perm={["blockchain.write", "demo.run"]}><Button variant="outline" onClick={() => setDeploy(true)}><Rocket className="h-4 w-4" />Desplegar contratos</Button></Can></>} />
       {st.loading && !s ? <Loading /> : s && (
         <>

@@ -26,7 +26,7 @@ export default function Configuracion() {
   const [tab, setTab] = React.useState<(typeof tabs)[number]["id"]>(tabs[0]?.id ?? "auditoria");
   return (
     <div className="space-y-4">
-      <PageHeader title="Configuración" subtitle="Módulos, parámetros, usuarios, permisos y auditoría" icon={<Settings className="h-5 w-5" />} />
+      <PageHeader area="Sistema" title="Configuración" subtitle="Módulos, parámetros, usuarios, permisos y auditoría" icon={<Settings className="h-5 w-5" />} />
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {tab === "modulos" && <Modules onSaved={refresh} />}
       {tab === "parametros" && <Params />}

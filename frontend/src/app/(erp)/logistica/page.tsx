@@ -10,6 +10,7 @@ import { Card, PageHeader, StatusBadge, Button, Tabs, Notice, Badge, Field, Inpu
 import { ServerTable } from "@/components/DataTable";
 import { CrudSection, useOptions } from "@/components/Crud";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can } from "@/components/providers";
 
 const NEXT: Record<string, string> = { PREPARACION: "DESPACHADO", DESPACHADO: "EN_TRANSITO", EN_TRANSITO: "ENTREGADO", ENTREGADO: "CONFORME" };
@@ -30,8 +31,9 @@ function LogisticaInner() {
   const lots = useOptions(ret ? "/inventory/lots?type=PRODUCTO_TERMINADO&pageSize=200" : null, (l) => l.code);
   return (
     <div className="space-y-4">
-      <PageHeader title="Logística" subtitle="Preparación → Despachado → En tránsito → Entregado → Conforme" icon={<Truck className="h-5 w-5" />}
+      <PageHeader area="Comercial" title="Logística" subtitle="Preparación → Despachado → En tránsito → Entregado → Conforme" icon={<Truck className="h-5 w-5" />}
         actions={<Can perm="logistics.write"><Button onClick={() => setCreate("")}><Plus className="h-4 w-4" />Nueva orden de despacho</Button></Can>} />
+      <ModuleKpis module="logistica" reloadKey={rk} />
       <Notice tone="blue">Política de salida configurada: <b>{settings?.["inventory.dispatchPolicy"] === "ON_DELIVERY" ? "descontar inventario al ENTREGAR" : "descontar inventario al DESPACHAR"}</b>. El sistema descuenta cada despacho una sola vez y bloquea lotes rechazados o en cuarentena.</Notice>
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "despachos", label: "Órdenes de despacho" }, { id: "transportistas", label: "Transportistas" }, { id: "vehiculos", label: "Vehículos" }]} />
       <Card>

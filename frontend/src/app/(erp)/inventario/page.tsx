@@ -30,7 +30,7 @@ export default function Inventario() {
   const pt = (summary.data ?? []).find((s) => s.type === "PRODUCTO_TERMINADO");
   return (
     <div className="space-y-4">
-      <PageHeader title="Inventarios" subtitle="Stock disponible, reservado y en cuarentena · kardex · trazabilidad por lote" icon={<Boxes className="h-5 w-5" />}
+      <PageHeader area="Procesamiento y Calidad" title="Almacén e inventario" subtitle="Stock disponible, reservado y en cuarentena · kardex · trazabilidad por lote" icon={<Boxes className="h-5 w-5" />}
         actions={<Can perm="inventory.write"><Button variant="outline" onClick={() => setDlg("move")}><PlusCircle className="h-4 w-4" />Entrada/salida de insumos</Button><Button variant="outline" onClick={() => setDlg("transfer")}><ArrowLeftRight className="h-4 w-4" />Transferencia</Button><Button variant="outline" onClick={() => setDlg("adjust")}><SlidersHorizontal className="h-4 w-4" />Solicitar ajuste</Button></Can>} />
       {pt && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

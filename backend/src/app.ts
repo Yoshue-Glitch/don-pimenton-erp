@@ -22,6 +22,7 @@ import { documentsRouter } from "./modules/documents";
 import { reportsRouter } from "./modules/reports";
 import { adminRouter } from "./modules/admin";
 import { demoRouter } from "./modules/demo";
+import { marketingRouter } from "./modules/marketing";
 
 export function createApp() {
   const app = express();
@@ -47,6 +48,7 @@ export function createApp() {
   api.use("/logistics", requireModule("logistica"), logisticsRouter);
   api.use("/exports", requireModule("exportaciones"), exportsRouter);
   api.use("/hr", requireModule("rrhh"), hrRouter);
+  api.use("/marketing", requireModule("marketing"), marketingRouter);
   api.use("/finance", requireModule("finanzas"), financeRouter);
   api.use("/blockchain", requireModule("blockchain"), blockchainRouter);
   api.use("/documents", documentsRouter);

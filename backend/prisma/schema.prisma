@@ -144,8 +144,8 @@ enum ContractType {
 model Worker {
   id             Int          @id @default(autoincrement())
   code           String       @unique
-  firstName      String
-  lastName       String
+  firstName      String?      // opcional: los puestos se identifican por cargo y área
+  lastName       String?
   documentNumber String       @unique // dato personal: acceso restringido
   phone          String?
   email          String?
@@ -1358,4 +1358,28 @@ model DemoRun {
   steps      Json
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
+}
+
+// ============================================================ MARKETING
+
+enum CampaignState {
+  PLANIFICADA
+  ACTIVA
+  FINALIZADA
+}
+
+model MarketingCampaign {
+  id        Int           @id @default(autoincrement())
+  code      String        @unique
+  name      String
+  channel   String        // Instagram, Facebook, LinkedIn, Email, Web, Feria
+  startDate DateTime      @db.Date
+  budgetPen Decimal       @db.Decimal(14, 2)
+  leads     Int           @default(0)
+  status    CampaignState @default(PLANIFICADA)
+  notes     String?
+  isDemo    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+
+  @@index([channel])
 }

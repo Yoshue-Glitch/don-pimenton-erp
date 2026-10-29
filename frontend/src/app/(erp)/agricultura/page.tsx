@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { Sprout, Plus, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
-import { kg, money, date } from "@/lib/utils";
+import { kg, money, date, workerLabel } from "@/lib/utils";
 import { Card, PageHeader, Tabs, StatusBadge, Button } from "@/components/ui";
 import { ServerTable } from "@/components/DataTable";
 import { CrudSection, useOptions } from "@/components/Crud";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can, useToast } from "@/components/providers";
 
 const ACT = ["SIEMBRA", "RIEGO", "FERTILIZACION", "CONTROL_PLAGAS", "MANTENIMIENTO", "COSECHA", "OTRO"].map((v) => ({ value: v, label: v.replace("_", " ").toLowerCase() }));
@@ -20,11 +21,12 @@ export default function Agricultura() {
   const router = useRouter();
   const toast = useToast();
   const parcels = useOptions("/agriculture/parcels?pageSize=100", (p) => `${p.code} — ${p.name}`);
-  const workers = useOptions("/hr/workers?pageSize=100", (w) => `${w.firstName} ${w.lastName}`);
+  const workers = useOptions("/hr/workers?pageSize=100", (w) => workerLabel(w));
   return (
     <div className="space-y-4">
-      <PageHeader title="Gestión agrícola" subtitle="Parcelas, campañas, seguimiento de actividades y cosechas" icon={<Sprout className="h-5 w-5" />}
+      <PageHeader area="Área Agrícola" title="Campo y cosechas" subtitle="Parcelas, campañas, seguimiento de actividades y cosechas" icon={<Sprout className="h-5 w-5" />}
         actions={<Can perm="agri.write"><Button onClick={() => setNewCamp(true)}><Plus className="h-4 w-4" />Nueva campaña</Button></Can>} />
+      <ModuleKpis module="agricultura" reloadKey={rk} />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "campanas", label: "Campañas" }, { id: "parcelas", label: "Parcelas" }, { id: "actividades", label: "Actividades" }, { id: "cosechas", label: "Cosechas" }]} />
       <Card>
         {tab === "campanas" && (
@@ -47,7 +49,7 @@ export default function Agricultura() {
             columns={[
               { key: "code", header: "Código", render: (r: any) => <span className="font-semibold">{r.code}</span> }, { key: "name", header: "Nombre" },
               { key: "location", header: "Ubicación", hideOnMobile: true }, { key: "areaHa", header: "Superficie", align: "right", render: (r: any) => `${Number(r.areaHa).toFixed(2)} ha` },
-              { key: "cropType", header: "Cultivo" }, { key: "resp", header: "Responsable", render: (r: any) => r.responsible ? `${r.responsible.firstName} ${r.responsible.lastName}` : "—" },
+              { key: "cropType", header: "Cultivo" }, { key: "resp", header: "Responsable", render: (r: any) => workerLabel(r.responsible) },
               { key: "status", header: "Estado", render: (r: any) => <StatusBadge status={r.status} /> },
             ]}
             toEdit={(r: any) => ({ name: r.name, location: r.location, areaHa: r.areaHa, cropType: r.cropType, responsibleId: r.responsibleId ?? "", status: r.status })}

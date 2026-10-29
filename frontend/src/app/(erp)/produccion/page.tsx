@@ -9,6 +9,7 @@ import { kg, date, num, money } from "@/lib/utils";
 import { Card, CardHeader, PageHeader, StatusBadge, Button, Empty } from "@/components/ui";
 import { ServerTable, Table } from "@/components/DataTable";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can } from "@/components/providers";
 
 export default function Produccion() {
@@ -17,7 +18,8 @@ export default function Produccion() {
   const [open, setOpen] = React.useState<any>(null);
   return (
     <div className="space-y-4">
-      <PageHeader title="Producción y procesamiento" subtitle="Recepción → Selección → Lavado → Deshidratación → Molienda → Control → Envasado → Almacén" icon={<Factory className="h-5 w-5" />} />
+      <PageHeader area="Procesamiento y Calidad" title="Producción" subtitle="Recepción → Selección → Lavado → Deshidratación → Molienda → Control → Envasado → Almacén" icon={<Factory className="h-5 w-5" />} />
+      <ModuleKpis module="produccion" />
       <Card>
         <CardHeader title="Materia prima pendiente de procesar" subtitle="Lotes enviados desde el módulo agrícola con saldo por procesar" />
         <Table rows={pending.data ?? []} empty={<Empty title="Sin materia prima pendiente" />} columns={[

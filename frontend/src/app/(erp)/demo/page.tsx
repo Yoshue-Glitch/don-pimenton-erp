@@ -54,7 +54,7 @@ export default function Demo() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Demostración guiada" subtitle="Escenario integral: venta de páprika de Don Pimentón a Distribuidora Andina Demo (lote DP-2026-001)" icon={<PlayCircle className="h-5 w-5" />}
+      <PageHeader area="Sistema" title="Demostración guiada" subtitle="Escenario integral: venta de páprika de Don Pimentón a Distribuidora Andina Demo (lote DP-2026-001)" icon={<PlayCircle className="h-5 w-5" />}
         actions={<Can perm="demo.run"><Button variant="outline" onClick={() => setReset(true)}><RotateCcw className="h-4 w-4" />Reiniciar demostración</Button></Can>} />
       <div className="grid gap-3 md:grid-cols-4">
         {[["Materia prima", "1,000 kg"], ["Producto final", "200 kg = 8 sacos de 25 kg"], ["Precio de prueba", "S/ 15 por kg"], ["Valor total", "S/ 3,000 (IGV incluido)"]].map(([k, v]) => <Card key={k} className="p-4"><p className="text-xs text-muted">{k}</p><p className="mt-1 font-semibold">{v}</p></Card>)}

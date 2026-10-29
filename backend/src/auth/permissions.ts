@@ -13,6 +13,7 @@ export const PERMISSIONS: { code: string; module: string; action: string; descri
   ["sales.read", "Ver ventas"], ["sales.write", "Registrar cotizaciones, pedidos y cobros"],
   ["logistics.read", "Ver logística"], ["logistics.write", "Gestionar despachos"],
   ["exports.read", "Ver exportaciones"], ["exports.write", "Gestionar exportaciones"],
+  ["marketing.read", "Ver marketing digital y marca"], ["marketing.write", "Gestionar campañas de marketing"],
   ["hr.read", "Ver RR.HH. (sin datos sensibles)"], ["hr.write", "Gestionar RR.HH."], ["hr.sensitive", "Ver datos personales y remuneraciones"],
   ["finance.read", "Ver finanzas"], ["finance.write", "Registrar ingresos, egresos y presupuestos"],
   ["blockchain.read", "Ver Smart Contracts"], ["blockchain.write", "Ejecutar operaciones blockchain"], ["blockchain.arbitrate", "Resolver disputas de acuerdos (árbitro)"],
@@ -30,9 +31,9 @@ const ALL = PERMISSIONS.map((p) => p.code);
 const READ = ALL.filter((c) => c.endsWith(".read"));
 
 export const ROLES: { code: string; name: string; description: string; chainActor?: string; permissions: string[] }[] = [
-  { code: "ADMIN", name: "Administrador general", description: "Acceso total y configuración", permissions: ALL },
+  { code: "ADMIN", name: "Gerencia General (acceso total)", description: "Titular de la Gerencia General: acceso total y configuración", permissions: ALL },
   {
-    code: "GERENCIA", name: "Gerencia", description: "Aprobaciones, supervisión y arbitraje de disputas", chainActor: "arbiter",
+    code: "GERENCIA", name: "Administración del sistema", description: "Aprobaciones, supervisión y arbitraje de disputas", chainActor: "arbiter",
     permissions: [...READ, "purchases.approve", "inventory.adjust.approve", "quality.approve", "hr.sensitive", "blockchain.write", "blockchain.arbitrate", "demo.run", "documents.write"],
   },
   { code: "AGRICOLA", name: "Responsable agrícola", description: "Parcelas, campañas y cosechas",
@@ -44,11 +45,11 @@ export const ROLES: { code: string; name: string; description: string; chainActo
   { code: "ALMACEN", name: "Responsable de almacén", description: "Inventarios, kardex y recepciones",
     permissions: ["dashboard.read", "inventory.read", "inventory.write", "production.read", "quality.read", "purchases.read", "purchases.receive", "logistics.read"] },
   { code: "COMERCIAL", name: "Responsable comercial", description: "Clientes, pedidos, despachos y acuerdos", chainActor: "seller",
-    permissions: ["dashboard.read", "sales.read", "sales.write", "logistics.read", "logistics.write", "inventory.read", "quality.read", "blockchain.read", "blockchain.write", "exports.read", "documents.write", "reports.read"] },
+    permissions: ["dashboard.read", "sales.read", "sales.write", "logistics.read", "logistics.write", "inventory.read", "quality.read", "blockchain.read", "blockchain.write", "exports.read", "marketing.read", "marketing.write", "documents.write", "reports.read"] },
   { code: "FINANZAS", name: "Responsable financiero", description: "Ingresos, egresos, cuentas y presupuestos",
     permissions: ["dashboard.read", "finance.read", "finance.write", "sales.read", "purchases.read", "purchases.pay", "hr.read", "hr.sensitive", "reports.read", "blockchain.read"] },
   { code: "EXPORTACIONES", name: "Responsable de exportaciones", description: "Operaciones internacionales y documentación",
-    permissions: ["dashboard.read", "exports.read", "exports.write", "sales.read", "quality.read", "inventory.read", "documents.write", "reports.read", "blockchain.read"] },
+    permissions: ["dashboard.read", "exports.read", "exports.write", "marketing.read", "marketing.write", "sales.read", "quality.read", "inventory.read", "documents.write", "reports.read", "blockchain.read"] },
   { code: "AUDITOR", name: "Auditor (solo lectura)", description: "Consulta de todos los módulos y auditoría",
     permissions: [...READ, "audit.read"] },
 ];

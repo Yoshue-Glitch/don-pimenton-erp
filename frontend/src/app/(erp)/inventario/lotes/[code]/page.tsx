@@ -25,7 +25,7 @@ export default function LotTrace() {
   return (
     <div className="space-y-4">
       <Link href="/inventario" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Inventarios</Link>
-      <PageHeader title={`Trazabilidad del lote ${t.code}`} subtitle={`${t.product.name} · ${kg(t.quantityKg)}${t.bags ? ` · ${t.bags} sacos` : ""}`}
+      <PageHeader area="Almacén · Trazabilidad" title={`Trazabilidad del lote ${t.code}`} subtitle={`${t.product.name} · ${kg(t.quantityKg)}${t.bags ? ` · ${t.bags} sacos` : ""}`}
         actions={<>
           <StatusBadge status={t.qualityStatus} /><StatusBadge status={t.chainStatus} label={`Blockchain: ${t.chainStatus.replace("_", " ").toLowerCase()}`} />
           {t.type === "PRODUCTO_TERMINADO" && can("blockchain.read") && <Button variant="outline" loading={busy === "v"} onClick={doVerify}><ShieldCheck className="h-4 w-4" />Verificar en blockchain</Button>}

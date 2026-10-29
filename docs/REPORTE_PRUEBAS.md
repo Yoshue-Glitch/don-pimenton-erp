@@ -1,13 +1,13 @@
 # Reporte de resultados de pruebas
 
-Ejecución del **27-oct-2026** en el entorno de desarrollo (Linux, Node.js 22.22, PostgreSQL 16.15, Hardhat 2.22.17, solcjs 0.8.24). Salidas copiadas tal cual de las herramientas; no se editaron los resultados.
+Ejecución del **29-oct-2026** en el entorno de desarrollo (Linux, Node.js 22.22, PostgreSQL 16.15, Hardhat 2.22.17, solcjs 0.8.24). Salidas copiadas tal cual de las herramientas; no se editaron los resultados.
 
 | Suite | Herramienta | Resultado |
 |---|---|---|
 | Contratos inteligentes | Hardhat + chai | **14 / 14** aprobadas |
-| API, reglas de negocio y escenario integral (PostgreSQL + Hardhat reales) | Vitest + Supertest | **34 / 34** aprobadas |
-| Interfaz de punta a punta | Playwright (Chromium) | **17 / 17** verificaciones |
-| Compilación de producción del frontend | `next build` | correcta (23 rutas) |
+| API, reglas de negocio y escenario integral (PostgreSQL + Hardhat reales) | Vitest + Supertest | **38 / 38** aprobadas |
+| Interfaz de punta a punta | Playwright (Chromium) | **23 / 23** verificaciones |
+| Compilación de producción del frontend | `next build` | correcta (26 rutas) |
 | Verificación de tipos | `tsc --noEmit` (backend y frontend) | sin errores |
 
 Durante las pruebas E2E se detectó y corrigió un defecto real: el correlativo de campañas `CAM-2026` colisionaba con un código sembrado ("Registro duplicado" al crear una campaña desde la interfaz). Se ajustó el seed y se agregó la prueba de regresión *"Correlativos > los códigos nuevos no colisionan con los datos sembrados"*.
@@ -40,7 +40,7 @@ Durante las pruebas E2E se detectó y corrigió un defecto real: el correlativo 
 ## 2. API y escenario integral (`npm run test:api`)
 
 ```
- ✓ tests/api.test.ts > Autenticación y seguridad > rechaza credenciales inválidas sin revelar si el usuario existe
+✓ tests/api.test.ts > Autenticación y seguridad > rechaza credenciales inválidas sin revelar si el usuario existe
  ✓ tests/api.test.ts > Autenticación y seguridad > bloquea la cuenta tras 5 intentos fallidos
  ✓ tests/api.test.ts > Autenticación y seguridad > las contraseñas se almacenan con bcrypt (nunca en texto plano)
  ✓ tests/api.test.ts > Autenticación y seguridad > requiere sesión y cabecera anti-CSRF
@@ -56,6 +56,10 @@ Durante las pruebas E2E se detectó y corrigió un defecto real: el correlativo 
  ✓ tests/api.test.ts > Idempotencia > USD exige tipo de cambio
  ✓ tests/api.test.ts > Exportaciones > no permite marcar requisitos como verificados sin evidencia
  ✓ tests/api.test.ts > Correlativos > los códigos nuevos no colisionan con los datos sembrados
+ ✓ tests/api.test.ts > Identidades y nuevos módulos > la Gerencia General es Martha Torres y el resto de puestos no tiene nombre de persona
+ ✓ tests/api.test.ts > Identidades y nuevos módulos > el seed actualiza nombres en una base ya cargada sin reiniciar la demo
+ ✓ tests/api.test.ts > Identidades y nuevos módulos > Marketing: lectura por rol, escritura solo con permiso
+ ✓ tests/api.test.ts > Identidades y nuevos módulos > organigrama y KPIs por módulo sin datos personales
  ✓ tests/api.test.ts > Dashboard > calcula los KPI desde la base de datos
  ✓ tests/scenario.test.ts > Escenario integral: venta de páprika DP-2026-001 > ejecuta los 18 pasos con transacciones confirmadas
  ✓ tests/scenario.test.ts > Escenario integral: venta de páprika DP-2026-001 > los módulos quedaron coherentes
@@ -75,7 +79,7 @@ Durante las pruebas E2E se detectó y corrigió un defecto real: el correlativo 
  ✓ tests/unit.test.ts > Cálculo de importes de venta > la venta por saco exige sacos enteros
  ✓ tests/unit.test.ts > Hash canónico > es independiente del orden de las claves
  Test Files  3 passed (3)
-      Tests  34 passed (34)
+      Tests  38 passed (38)
 ```
 
 ## 3. Interfaz E2E (`npm run test:e2e`)
@@ -100,12 +104,19 @@ E2E-5 Permisos en la interfaz
   ✓ auditor no ve acciones de calidad
   ✓ auditor no ve 'Nuevo pedido'
   ✓ responsable agrícola solo ve sus módulos
-E2E-6 Responsive y modo oscuro
+  ✓ los puestos se muestran por área, sin nombre de persona
+E2E-6 Diseño de Gerencia: bienvenida, organigrama, marketing y Smart Contract
+  ✓ bienvenida a Martha Torres en el dashboard
+  ✓ dashboard con cadena productiva y estado por área
+  ✓ organigrama con la Gerencia General
+  ✓ módulo de marketing con campañas
+  ✓ el botón Smart Contract abre el panel blockchain real
+E2E-7 Responsive y modo oscuro
   ✓ modo oscuro aplicado
   ✓ sin desplazamiento horizontal en móvil
   ✓ sin errores JavaScript en página ()
 
-17 verificaciones E2E superadas.
+23 verificaciones E2E superadas (ejecutadas contra la instancia tipo Render: build de producción, DEMO_PASSWORD propio).
 ```
 
 ## Cómo reproducir

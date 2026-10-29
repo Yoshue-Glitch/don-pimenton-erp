@@ -20,7 +20,7 @@ export default function Reportes() {
   const dl = async (k: string, path: string, name: string) => { setBusy(k); try { await download(path, name); toast.success("Descarga generada", name); } catch (e: any) { toast.error("No se pudo generar", e.message); } finally { setBusy(null); } };
   return (
     <div className="space-y-4">
-      <PageHeader title="Reportes" subtitle="Trazabilidad en PDF y exportaciones a Excel generadas desde la base de datos" icon={<FileText className="h-5 w-5" />} />
+      <PageHeader area="Sistema" title="Reportes" subtitle="Trazabilidad en PDF y exportaciones a Excel generadas desde la base de datos" icon={<FileText className="h-5 w-5" />} />
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader title="Reporte de trazabilidad por lote (PDF)" subtitle="Campo → planta → calidad → inventario → venta → verificación blockchain" icon={<FileDown className="h-4 w-4" />} />

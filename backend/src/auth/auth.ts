@@ -64,7 +64,7 @@ export function csrfGuard(req: Request, _res: Response, next: NextFunction) {
 const MODULE_PERMS: Record<string, string> = {
   agricultura: "agri.read", produccion: "production.read", calidad: "quality.read", inventario: "inventory.read",
   compras: "purchases.read", ventas: "sales.read", logistica: "logistics.read", finanzas: "finance.read",
-  blockchain: "blockchain.read", exportaciones: "exports.read", rrhh: "hr.read",
+  blockchain: "blockchain.read", exportaciones: "exports.read", rrhh: "hr.read", marketing: "marketing.read",
 };
 
 /** Bloquea las rutas de un módulo desactivado en Configuración. */

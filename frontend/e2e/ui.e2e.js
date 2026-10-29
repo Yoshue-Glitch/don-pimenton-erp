@@ -55,7 +55,7 @@ async function login(p, email) {
   await (await dl).saveAs(file);
   assert(fs.readFileSync(file).subarray(0, 4).toString() === "%PDF", "PDF de trazabilidad descargado");
   for (const n of ["Lote rechazado", "Entrega no confirmada", "Usuario no autorizado"]) {
-    const card = p.locator("div.rounded-xl", { has: p.locator(`h3:text-is("${n}")`) }).first();
+    const card = p.locator("div.rounded-2xl", { has: p.locator(`h3:text-is("${n}")`) }).first();
     await card.locator('button:has-text("Ejecutar")').click();
     await card.locator("text=Comportamiento esperado verificado").waitFor({ timeout: 90000 });
     assert(true, `escenario negativo "${n}" bloqueado correctamente`);
@@ -97,9 +97,27 @@ async function login(p, email) {
   const g = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   await login(g, "agricola@donpimenton.pe");
   const nav = await g.locator("aside nav").first().innerText();
-  assert(nav.includes("Gestión agrícola") && !nav.includes("Finanzas") && !nav.includes("Blockchain"), "responsable agrícola solo ve sus módulos");
+  assert(nav.includes("Campo y cosechas") && !nav.includes("Finanzas") && !nav.includes("Smart Contract"), "responsable agrícola solo ve sus módulos");
+  assert((await g.locator("header").innerText()).includes("Área Agrícola y Mantenimiento"), "los puestos se muestran por área, sin nombre de persona");
 
-  console.log("E2E-6 Responsive y modo oscuro");
+  console.log("E2E-6 Diseño de Gerencia: bienvenida, organigrama, marketing y Smart Contract");
+  await p.goto(`${BASE}/`);
+  await p.waitForSelector("text=¡Bienvenida, Martha!");
+  assert(true, "bienvenida a Martha Torres en el dashboard");
+  await p.waitForSelector("text=Cadena productiva"); await p.waitForSelector("text=Estado por área");
+  assert(true, "dashboard con cadena productiva y estado por área");
+  await p.goto(`${BASE}/organigrama`);
+  await p.waitForSelector("text=Titular: Sra. Martha Torres");
+  assert(true, "organigrama con la Gerencia General");
+  await p.goto(`${BASE}/marketing`);
+  await p.waitForSelector("text=Lanzamiento de marca Don Pimentón");
+  assert(true, "módulo de marketing con campañas");
+  await p.goto(`${BASE}/smart-contract`);
+  await p.click('a:has-text("Smart Contract")  >> nth=-1');
+  await p.waitForURL(/\/blockchain$/);
+  assert(true, "el botón Smart Contract abre el panel blockchain real");
+
+  console.log("E2E-7 Responsive y modo oscuro");
   const mp = await (await b.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" })).newPage();
   await login(mp, "gerencia@donpimenton.pe"); await mp.waitForTimeout(3000);
   assert(await mp.evaluate(() => document.documentElement.classList.contains("dark")), "modo oscuro aplicado");

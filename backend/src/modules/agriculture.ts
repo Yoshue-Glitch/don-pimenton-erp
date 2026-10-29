@@ -24,7 +24,7 @@ const parcelSchema = z.object({
 agricultureRouter.use("/parcels", crud({
   model: "parcel", entity: "parcela", readPerm: "agri.read", writePerm: "agri.write", schema: parcelSchema,
   search: ["code", "name", "location", "cropType"], filters: ["status"], orderBy: { code: "asc" },
-  include: { responsible: { select: { id: true, firstName: true, lastName: true } }, _count: { select: { campaigns: true } } },
+  include: { responsible: { select: { id: true, firstName: true, lastName: true, position: true } }, _count: { select: { campaigns: true } } },
   codePrefix: { field: "code", prefix: "PAR", year: false, pad: 3 },
 }));
 

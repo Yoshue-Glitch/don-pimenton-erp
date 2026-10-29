@@ -20,9 +20,9 @@ export function Table<T extends { id?: any }>({ columns, rows, onRowClick, empty
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-line bg-soft/60 text-left">
+          <tr className="border-b border-line bg-soft text-left">
             {columns.map((c) => (
-              <th key={c.key} className={cn("whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted", c.align === "right" && "text-right", c.align === "center" && "text-center", c.hideOnMobile && "hidden md:table-cell")}>{c.header}</th>
+              <th key={c.key} className={cn("whitespace-nowrap px-[14px] py-3 text-xs font-bold text-fg", c.align === "right" && "text-right", c.align === "center" && "text-center", c.hideOnMobile && "hidden md:table-cell")}>{c.header}</th>
             ))}
           </tr>
         </thead>
@@ -30,7 +30,7 @@ export function Table<T extends { id?: any }>({ columns, rows, onRowClick, empty
           {rows.map((r, i) => (
             <tr key={rowKey ? rowKey(r, i) : r.id ?? i} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn("border-b border-line/70 last:border-0 transition-colors", onRowClick && "cursor-pointer hover:bg-soft/70")}>
               {columns.map((c) => (
-                <td key={c.key} className={cn("px-4 py-2.5 align-middle text-fg", c.align === "right" && "text-right tabular-nums", c.align === "center" && "text-center", c.hideOnMobile && "hidden md:table-cell", c.className)}>
+                <td key={c.key} className={cn("whitespace-nowrap px-[14px] py-[11px] align-middle text-fg", c.align === "right" && "text-right tabular-nums", c.align === "center" && "text-center", c.hideOnMobile && "hidden md:table-cell", c.className)}>
                   {c.render ? c.render(r) : ((r as any)[c.key] ?? "—")}
                 </td>
               ))}

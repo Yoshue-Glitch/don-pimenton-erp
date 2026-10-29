@@ -149,6 +149,58 @@ describe("Correlativos", () => {
   });
 });
 
+describe("Identidades y nuevos módulos", () => {
+  it("la Gerencia General es Martha Torres y el resto de puestos no tiene nombre de persona", async () => {
+    const users = await prisma.user.findMany({ select: { email: true, name: true } });
+    expect(users.find((u) => u.email === "admin@donpimenton.pe")?.name).toBe("Martha Torres");
+    expect(users.find((u) => u.email === "agricola@donpimenton.pe")?.name).toBe("Área Agrícola y Mantenimiento");
+    const named = await prisma.worker.findMany({ where: { firstName: { not: null } } });
+    expect(named.map((w) => `${w.firstName} ${w.lastName}`)).toEqual(["Martha Torres"]);
+  });
+
+  it("el seed actualiza nombres en una base ya cargada sin reiniciar la demo", async () => {
+    const { seedSecurity, syncDemoIdentities } = await import("../src/seed/seedData");
+    await prisma.user.update({ where: { email: "admin@donpimenton.pe" }, data: { name: "Ana Torres (Administradora)" } });
+    await prisma.worker.updateMany({ where: { documentNumber: "40111111" }, data: { firstName: "Julio", lastName: "Quispe" } });
+    await seedSecurity(prisma as any);
+    await syncDemoIdentities(prisma as any);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: "admin@donpimenton.pe" } })).name).toBe("Martha Torres");
+    expect((await prisma.worker.findUniqueOrThrow({ where: { documentNumber: "40111111" } })).firstName).toBeNull();
+  });
+
+  it("Marketing: lectura por rol, escritura solo con permiso", async () => {
+    const exp = await login("exportaciones@donpimenton.pe");
+    const list = await exp.get("/api/marketing/campaigns");
+    expect(list.status).toBe(200);
+    expect(list.body.total).toBe(7);
+    const created = await exp.post("/api/marketing/campaigns").send({ name: "Degustación en supermercados", channel: "Feria", startDate: "2026-11-20", budgetPen: 600, status: "PLANIFICADA" });
+    expect(created.status).toBe(201);
+    expect(created.body.code).toBe("MKT-008");
+    const sum = await exp.get("/api/marketing/summary");
+    expect(sum.body.leads).toBe(202);
+    const agr = await login("agricola@donpimenton.pe");
+    expect((await agr.get("/api/marketing/campaigns")).status).toBe(403);
+    const aud = await login("auditor@donpimenton.pe");
+    expect((await aud.get("/api/marketing/campaigns")).status).toBe(200);
+    expect((await aud.post("/api/marketing/campaigns").send({ name: "x", channel: "Web", startDate: "2026-11-01", budgetPen: 1 })).status).toBe(403);
+  });
+
+  it("organigrama y KPIs por módulo sin datos personales", async () => {
+    const s = await login("produccion@donpimenton.pe");
+    const org = await s.get("/api/dashboard/org");
+    expect(org.status).toBe(200);
+    expect(org.body.generalManager).toBe("Martha Torres");
+    expect(org.body.areas.find((a: any) => a.code === "AGR").headcount).toBeGreaterThan(0);
+    expect(JSON.stringify(org.body)).not.toMatch(/monthlySalary|documentNumber/);
+    const k = await s.get("/api/dashboard/kpis/produccion");
+    expect(k.status).toBe(200);
+    expect(k.body).toHaveLength(4);
+    expect((await s.get("/api/dashboard/kpis/compras")).status).toBe(200);
+    const agr = await login("agricola@donpimenton.pe");
+    expect((await agr.get("/api/dashboard/kpis/ventas")).status).toBe(403);
+  });
+});
+
 describe("Dashboard", () => {
   it("calcula los KPI desde la base de datos", async () => {
     const s = await login("gerencia@donpimenton.pe");
@@ -158,5 +210,9 @@ describe("Dashboard", () => {
     expect(r.body.kpis.produccionTotalKg).toBe(Number(lots._sum.quantityKg));
     expect(r.body.series).toHaveLength(12);
     expect(r.body.demoData).toBe(true);
+    expect(r.body.overview.series).toHaveLength(6);
+    const harvested = await prisma.harvest.aggregate({ _sum: { quantityKg: true } });
+    expect(r.body.overview.funnel.cosechadoKg).toBe(Number(harvested._sum.quantityKg));
+    expect(r.body.overview.workers.payrollPen).not.toBeNull(); // Gerencia tiene acceso a remuneraciones
   });
 });

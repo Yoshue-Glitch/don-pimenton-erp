@@ -9,6 +9,7 @@ import { Card, CardHeader, PageHeader, StatusBadge, Button, Tabs, Notice, Empty,
 import { ServerTable, Table } from "@/components/DataTable";
 import { FormDialog } from "@/components/FormDialog";
 import { CrudSection, useOptions } from "@/components/Crud";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can, useToast } from "@/components/providers";
 
 const LAB = ["PENDIENTE", "CONFORME", "NO_CONFORME"].map((v) => ({ value: v, label: v.replace("_", " ") }));
@@ -26,7 +27,8 @@ export default function Calidad() {
   const refresh = () => { lots.reload(); setRk((k) => k + 1); };
   return (
     <div className="space-y-4">
-      <PageHeader title="Calidad e inocuidad" subtitle="Control por lote · un lote rechazado o en cuarentena no puede despacharse" icon={<ShieldCheck className="h-5 w-5" />} />
+      <PageHeader area="Procesamiento y Calidad" title="Control de calidad" subtitle="Control por lote · un lote rechazado o en cuarentena no puede despacharse" icon={<ShieldCheck className="h-5 w-5" />} />
+      <ModuleKpis module="calidad" reloadKey={rk} />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "lotes", label: "Lotes por evaluar", count: pending.length }, { id: "inspecciones", label: "Inspecciones" }, { id: "specs", label: "Especificaciones" }]} />
       {tab === "lotes" && (
         <Card>

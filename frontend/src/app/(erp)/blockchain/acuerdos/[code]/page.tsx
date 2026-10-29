@@ -51,7 +51,7 @@ export default function AgreementPage() {
   return (
     <div className="space-y-4">
       <Link href="/blockchain" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Blockchain</Link>
-      <PageHeader title={`Acuerdo comercial ${a.code}`} subtitle={`Lote ${a.lot.code} · ${a.customer.name}${a.salesOrder ? ` · pedido ${a.salesOrder.code}` : ""}`} actions={<StatusBadge status={a.status} />} />
+      <PageHeader area="Exportaciones · Blockchain" title={`Acuerdo comercial ${a.code}`} subtitle={`Lote ${a.lot.code} · ${a.customer.name}${a.salesOrder ? ` · pedido ${a.salesOrder.code}` : ""}`} actions={<StatusBadge status={a.status} />} />
       {a.chainError && <ErrorBox message={a.chainError} />}
       <Card>
         <CardHeader title="Flujo del contrato (estado leído de la blockchain)" subtitle={on?.exists ? `¿Liberación habilitada? ${on.canRelease ? "Sí" : "No"} — ${on.canReleaseReason}` : "El acuerdo aún no existe on-chain"} />

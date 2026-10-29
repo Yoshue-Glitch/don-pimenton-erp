@@ -27,7 +27,7 @@ export default function Finanzas() {
   const s = summary.data;
   return (
     <div className="space-y-4">
-      <PageHeader title="Finanzas" subtitle="Ingresos, egresos, cuentas por cobrar y pagar, costos, presupuestos, flujo de caja y rentabilidad (PEN / USD)" icon={<Landmark className="h-5 w-5" />}
+      <PageHeader area="Administración y Finanzas" title="Finanzas" subtitle="Ingresos, egresos, cuentas por cobrar y pagar, costos, presupuestos, flujo de caja y rentabilidad (PEN / USD)" icon={<Landmark className="h-5 w-5" />}
         actions={<Can perm="finance.write"><Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Registrar ingreso / egreso</Button></Can>} />
       {s && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Cuentas por cobrar" value={money(s.receivablesPen)} hint={`${s.overdueReceivables} vencida(s)`} tone="agro" /><Kpi label="Cuentas por pagar" value={money(s.payablesPen)} tone="red" />

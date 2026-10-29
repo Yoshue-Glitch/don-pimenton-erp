@@ -1,12 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { seedSecurity, resetBusinessData, seedBaseData, DEMO_USERS, DEMO_PASSWORD } from "../src/seed/seedData";
+import { seedSecurity, resetBusinessData, seedBaseData, syncDemoIdentities, seedMarketing, DEMO_USERS, DEMO_PASSWORD } from "../src/seed/seedData";
 import { deployContracts } from "../src/blockchain/chain";
 
 const db = new PrismaClient();
 
 async function main() {
   if (process.argv.includes("--if-empty") && (await db.lot.count()) > 0) {
-    console.log("La base ya tiene datos: se omite la carga de demostración (--if-empty).");
+    // base ya cargada (p. ej. en Render): solo se actualizan permisos, nombres y cargos
+    await seedSecurity(db);
+    await syncDemoIdentities(db);
+    await seedMarketing(db);
+    console.log("La base ya tiene datos: se actualizaron usuarios y puestos; se omite la carga de demostración (--if-empty).");
     return;
   }
   const t = Date.now();

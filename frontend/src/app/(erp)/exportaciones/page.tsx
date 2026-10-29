@@ -8,6 +8,7 @@ import { Card, PageHeader, StatusBadge, Button, Tabs, Notice, Badge } from "@/co
 import { ServerTable } from "@/components/DataTable";
 import { CrudSection, useOptions } from "@/components/Crud";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can } from "@/components/providers";
 
 const INCOTERMS = ["EXW", "FCA", "FAS", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DPU", "DDP"];
@@ -21,8 +22,9 @@ export default function Exportaciones() {
   const lots = useOptions("/inventory/lots?type=PRODUCTO_TERMINADO&qualityStatus=APROBADO&pageSize=100", (l) => l.code);
   return (
     <div className="space-y-4">
-      <PageHeader title="Exportaciones" subtitle="Módulo preparado para operaciones internacionales: indirecta (vía socio exportador) y directa" icon={<Globe2 className="h-5 w-5" />}
+      <PageHeader area="Departamento de Exportaciones" title="Exportaciones" subtitle="Módulo preparado para operaciones internacionales: indirecta (vía socio exportador) y directa" icon={<Globe2 className="h-5 w-5" />}
         actions={<Can perm="exports.write"><Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Nueva orden internacional</Button></Can>} />
+      <ModuleKpis module="exportaciones" />
       <Notice>El sistema no genera certificados oficiales ni marca requisitos legales como cumplidos sin evidencia documental adjunta y verificada. La aplicabilidad de cada documento depende del destino y debe validarse con el agente de aduanas o el socio exportador.</Notice>
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "ordenes", label: "Órdenes internacionales" }, { id: "socios", label: "Socios exportadores" }, { id: "clientes", label: "Clientes internacionales" }]} />
       <Card>

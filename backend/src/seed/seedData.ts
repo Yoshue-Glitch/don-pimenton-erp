@@ -18,17 +18,18 @@ import { applyMovement } from "../modules/inventory.service";
 // En un despliegue público defina DEMO_PASSWORD para no usar la contraseña documentada.
 export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "DonPimenton#2026";
 
+/** Usuarios demo: solo la Gerencia General es una persona; el resto se identifica por su área. */
 export const DEMO_USERS = [
-  { email: "admin@donpimenton.pe", name: "Ana Torres (Administradora)", role: "ADMIN", area: "GER" },
-  { email: "gerencia@donpimenton.pe", name: "Rosa Huamán (Gerente General)", role: "GERENCIA", area: "GER" },
-  { email: "agricola@donpimenton.pe", name: "Julio Quispe (Agrícola)", role: "AGRICOLA", area: "AGR" },
-  { email: "produccion@donpimenton.pe", name: "Carmen Flores (Producción)", role: "PRODUCCION", area: "PRO" },
-  { email: "calidad@donpimenton.pe", name: "Luis Mamani (Calidad)", role: "CALIDAD", area: "PRO" },
-  { email: "almacen@donpimenton.pe", name: "Pedro Ccama (Almacén)", role: "ALMACEN", area: "COM" },
-  { email: "comercial@donpimenton.pe", name: "María Condori (Comercial)", role: "COMERCIAL", area: "COM" },
-  { email: "finanzas@donpimenton.pe", name: "Jorge Salas (Finanzas)", role: "FINANZAS", area: "FIN" },
-  { email: "exportaciones@donpimenton.pe", name: "Lucía Paredes (Exportaciones)", role: "EXPORTACIONES", area: "EXP" },
-  { email: "auditor@donpimenton.pe", name: "Raúl Medina (Auditor)", role: "AUDITOR", area: null },
+  { email: "admin@donpimenton.pe", name: "Martha Torres", role: "ADMIN", area: "GER" },
+  { email: "gerencia@donpimenton.pe", name: "Administración del sistema", role: "GERENCIA", area: "GER" },
+  { email: "agricola@donpimenton.pe", name: "Área Agrícola y Mantenimiento", role: "AGRICOLA", area: "AGR" },
+  { email: "produccion@donpimenton.pe", name: "Procesamiento y Calidad · Producción", role: "PRODUCCION", area: "PRO" },
+  { email: "calidad@donpimenton.pe", name: "Procesamiento y Calidad · Calidad", role: "CALIDAD", area: "PRO" },
+  { email: "almacen@donpimenton.pe", name: "Comercial y Logística · Almacén", role: "ALMACEN", area: "COM" },
+  { email: "comercial@donpimenton.pe", name: "Comercial y Logística · Ventas", role: "COMERCIAL", area: "COM" },
+  { email: "finanzas@donpimenton.pe", name: "Administración y Finanzas", role: "FINANZAS", area: "FIN" },
+  { email: "exportaciones@donpimenton.pe", name: "Departamento de Exportaciones", role: "EXPORTACIONES", area: "EXP" },
+  { email: "auditor@donpimenton.pe", name: "Auditoría interna", role: "AUDITOR", area: null },
 ];
 
 const AREAS = [
@@ -45,19 +46,53 @@ const AREAS = [
 /** Seguridad: áreas, permisos, roles y usuarios (idempotente, no borra sesiones ni auditoría). */
 export async function seedSecurity(db: PrismaClient) {
   for (const a of AREAS) await db.area.upsert({ where: { code: a.code }, create: a, update: { name: a.name, projected: a.projected } });
+  const known = new Set((await db.permission.findMany({ select: { code: true } })).map((p) => p.code));
   for (const p of PERMISSIONS) await db.permission.upsert({ where: { code: p.code }, create: p, update: { description: p.description, module: p.module, action: p.action } });
   const perms = await db.permission.findMany();
+  const added = perms.filter((p) => known.size > 0 && !known.has(p.code));
   for (const r of ROLES) {
     const role = await db.role.upsert({ where: { code: r.code }, create: { code: r.code, name: r.name, description: r.description }, update: { name: r.name, description: r.description } });
     const existing = await db.rolePermission.count({ where: { roleId: role.id } });
     if (existing === 0) await db.rolePermission.createMany({ data: perms.filter((p) => r.permissions.includes(p.code)).map((p) => ({ roleId: role.id, permissionId: p.id })) });
+    // permisos incorporados en una versión nueva: se otorgan según la asignación por defecto
+    else if (added.length) await db.rolePermission.createMany({ data: added.filter((p) => r.permissions.includes(p.code)).map((p) => ({ roleId: role.id, permissionId: p.id })), skipDuplicates: true });
   }
   const hash = await bcrypt.hash(DEMO_PASSWORD, 12);
   for (const u of DEMO_USERS) {
     const role = await db.role.findUniqueOrThrow({ where: { code: u.role } });
     const area = u.area ? await db.area.findUnique({ where: { code: u.area } }) : null;
-    await db.user.upsert({ where: { email: u.email }, create: { email: u.email, name: u.name, passwordHash: hash, roleId: role.id, areaId: area?.id }, update: {} });
+    await db.user.upsert({ where: { email: u.email }, create: { email: u.email, name: u.name, passwordHash: hash, roleId: role.id, areaId: area?.id }, update: { name: u.name, areaId: area?.id } });
   }
+}
+
+/** Trabajadores demo: solo la Gerencia General conserva nombre; el resto se identifica por cargo y área. */
+export const DEMO_WORKERS = [
+  ["Martha", "Torres", "40666666", "GER", "Gerente General", "2015-01-01", "INDEFINIDO", 4500, false],
+  [null, null, "40111111", "AGR", "Responsable agrícola", "2018-03-01", "INDEFINIDO", 2200, false],
+  [null, null, "40222222", "PRO", "Jefatura de planta", "2019-01-15", "INDEFINIDO", 2400, false],
+  [null, null, "40333333", "PRO", "Analista de calidad", "2020-07-01", "INDEFINIDO", 2300, false],
+  [null, null, "40444444", "COM", "Responsable de almacén", "2021-02-01", "PLAZO_FIJO", 1600, false],
+  [null, null, "40555555", "COM", "Responsable comercial", "2019-09-01", "INDEFINIDO", 2500, false],
+  [null, null, "40777777", "PRO", "Personal de secado", "2022-04-01", "PLAZO_FIJO", 1400, false],
+  [null, null, "40888888", "AGR", "Personal de campo", "2023-05-01", "PLAZO_FIJO", 1300, false],
+  [null, null, "41000001", "AGR", "Personal de cosecha (temporal)", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
+  [null, null, "41000002", "AGR", "Personal de cosecha (temporal)", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
+  [null, null, "41000003", "AGR", "Personal de cosecha (temporal)", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
+  [null, null, "41000004", "PRO", "Personal de selección (temporal)", "2026-09-20", "TEMPORAL_COSECHA", 1130, true],
+] as const;
+
+/**
+ * Actualiza las identidades de una base ya cargada (p. ej. la publicada en Render)
+ * sin reiniciar la demostración: nombres de usuarios, cargos y trabajadores demo.
+ */
+export async function syncDemoIdentities(db: PrismaClient) {
+  for (const w of DEMO_WORKERS) {
+    const area = await db.area.findUnique({ where: { code: w[3] } });
+    await db.worker.updateMany({ where: { documentNumber: w[2], isDemo: true }, data: { firstName: w[0], lastName: w[1], position: w[4], ...(area ? { areaId: area.id } : {}) } });
+  }
+  await db.agriActivity.updateMany({ where: { responsible: { in: ["Julio Quispe", "Responsable agrícola (demo)"] } }, data: { responsible: "Área Agrícola" } });
+  await db.goodsReceipt.updateMany({ where: { receivedBy: "Almacén" }, data: { receivedBy: "Almacén" } });
+  await db.evaluation.updateMany({ where: { evaluator: "Gerencia General" }, data: { evaluator: "Gerencia General" } });
 }
 
 const BUSINESS_TABLES = [
@@ -67,7 +102,7 @@ const BUSINESS_TABLES = [
   "PurchaseOrderItem", "PurchaseOrder", "SupplierQuote", "PurchaseRequestItem", "PurchaseRequest", "Supplier", "InventoryAdjustment",
   "InventoryMovement", "InventoryBalance", "QualityInspection", "QualitySpec", "Document", "ProductionStage", "ProductionOrder", "Lot",
   "Harvest", "AgriActivity", "Campaign", "Parcel", "Customer", "WarehouseLocation", "Warehouse", "Product", "Budget", "ExchangeRate",
-  "TrainingParticipant", "Training", "Evaluation", "LeaveRequest", "Attendance", "WorkerContract", "Worker",
+  "TrainingParticipant", "Training", "Evaluation", "LeaveRequest", "Attendance", "WorkerContract", "Worker", "MarketingCampaign",
 ];
 
 export async function resetBusinessData(db: PrismaClient) {
@@ -102,29 +137,16 @@ export async function seedBaseData(db: PrismaClient) {
   const prod = Object.fromEntries((await db.product.findMany()).map((p) => [p.code, p.id]));
 
   // ---------------------------------------------------------- personas y terceros
-  const workers = [
-    ["Julio", "Quispe Apaza", "40111111", "AGR", "Responsable agrícola", "2018-03-01", "INDEFINIDO", 2200, false],
-    ["Carmen", "Flores Ticona", "40222222", "PRO", "Jefa de planta", "2019-01-15", "INDEFINIDO", 2400, false],
-    ["Luis", "Mamani Choque", "40333333", "PRO", "Analista de calidad", "2020-07-01", "INDEFINIDO", 2300, false],
-    ["Pedro", "Ccama Huanca", "40444444", "COM", "Almacenero", "2021-02-01", "PLAZO_FIJO", 1600, false],
-    ["María", "Condori Vilca", "40555555", "COM", "Ejecutiva comercial", "2019-09-01", "INDEFINIDO", 2500, false],
-    ["Rosa", "Huamán Paz", "40666666", "GER", "Gerente general", "2015-01-01", "INDEFINIDO", 4500, false],
-    ["Hugo", "Arce Lima", "40777777", "PRO", "Operario de secado", "2022-04-01", "PLAZO_FIJO", 1400, false],
-    ["Elena", "Ramos Cutipa", "40888888", "AGR", "Operaria de campo", "2023-05-01", "PLAZO_FIJO", 1300, false],
-    ["Marco", "Puma Roque", "41000001", "AGR", "Cosechador temporal", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
-    ["Sonia", "Yupanqui Gómez", "41000002", "AGR", "Cosechadora temporal", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
-    ["Iván", "Turpo Mendoza", "41000003", "AGR", "Cosechador temporal", "2026-09-15", "TEMPORAL_COSECHA", 1130, true],
-    ["Nadia", "Laura Quispe", "41000004", "PRO", "Seleccionadora temporal", "2026-09-20", "TEMPORAL_COSECHA", 1130, true],
-  ] as const;
+  const workers = DEMO_WORKERS;
   for (const [i, w] of workers.entries()) {
-    await db.worker.create({ data: { code: `TRB-${String(i + 1).padStart(4, "0")}`, firstName: w[0], lastName: w[1], documentNumber: w[2], areaId: await area(w[3]), position: w[4], hireDate: d(w[5]), contractType: w[6], monthlySalary: w[7], isTemporary: w[8], phone: "9" + w[2], email: `${w[0].toLowerCase()}.demo@example.com`, contracts: { create: { type: w[6], startDate: d(w[5]), salary: w[7] } } } });
+    await db.worker.create({ data: { code: `TRB-${String(i + 1).padStart(4, "0")}`, firstName: w[0], lastName: w[1], documentNumber: w[2], areaId: await area(w[3]), position: w[4], hireDate: d(w[5]), contractType: w[6], monthlySalary: w[7], isTemporary: w[8], phone: "9" + w[2], email: `trb-${String(i + 1).padStart(4, "0")}.demo@example.com`, contracts: { create: { type: w[6], startDate: d(w[5]), salary: w[7] } } } });
   }
   await setSequence(db as any, "TRB", workers.length);
   const wk = await db.worker.findMany({ orderBy: { id: "asc" } });
 
   await db.parcel.createMany({ data: [
-    { code: "PAR-001", name: "Lote Majes A", location: "Valle de Majes, Caylloma, Arequipa (demo)", areaHa: 2.5, cropType: "Pimentón / páprika", responsibleId: wk[0].id, status: "ACTIVA" },
-    { code: "PAR-002", name: "Lote Majes B", location: "Valle de Majes, Caylloma, Arequipa (demo)", areaHa: 1.8, cropType: "Pimentón / páprika", responsibleId: wk[0].id, status: "ACTIVA" },
+    { code: "PAR-001", name: "Lote Majes A", location: "Valle de Majes, Caylloma, Arequipa (demo)", areaHa: 2.5, cropType: "Pimentón / páprika", responsibleId: wk[1].id, status: "ACTIVA" },
+    { code: "PAR-002", name: "Lote Majes B", location: "Valle de Majes, Caylloma, Arequipa (demo)", areaHa: 1.8, cropType: "Pimentón / páprika", responsibleId: wk[1].id, status: "ACTIVA" },
     { code: "PAR-003", name: "Lote La Joya", location: "La Joya, Arequipa (demo)", areaHa: 1.2, cropType: "Pimentón / páprika", responsibleId: wk[7].id, status: "EN_DESCANSO" },
   ] });
   await setSequence(db as any, "PAR", 3);
@@ -195,7 +217,7 @@ export async function seedBaseData(db: PrismaClient) {
     const acts: [any, number, string, number][] = [["SIEMBRA", 0, "Trasplante", 900], ["RIEGO", 30, "Riego por gravedad", 450], ["FERTILIZACION", 50, "Fertilización NPK", 1100], ["CONTROL_PLAGAS", 80, "Control biológico", 600], ["MANTENIMIENTO", 100, "Deshierbo y mantenimiento de canales", 500]];
     for (const [type, off, desc, cost] of acts) {
       const date = new Date(base.getTime() + off * 86400000);
-      const a = await db.agriActivity.create({ data: { campaignId: camp.id, type, date, description: desc, responsible: "Julio Quispe", cost } });
+      const a = await db.agriActivity.create({ data: { campaignId: camp.id, type, date, description: desc, responsible: "Área Agrícola", cost } });
       await db.financialTransaction.create({ data: { code: `FIN-H-${camp.id}-${a.id}`, type: "EGRESO", category: "COSTO_AGRICOLA", date, description: `${type} — ${c.code}: ${desc}`, amount: cost, amountPen: cost, campaignId: camp.id, referenceType: "AGRI_ACTIVITY", referenceCode: `${c.code}#${a.id}`, userId: uid } });
     }
   }
@@ -271,7 +293,7 @@ export async function seedBaseData(db: PrismaClient) {
   const q1 = await db.supplierQuote.create({ data: { code: "CTP-2026-0001", requestId: req1.id, supplierId: sup["20999100001"], date: d("2026-08-20"), total: 1416, deliveryDays: 3, selected: true } });
   const po1 = await db.purchaseOrder.create({ data: { code: "OC-2026-0001", requestId: req1.id, supplierId: sup["20999100001"], quoteId: q1.id, date: d("2026-08-22"), subtotal: 1200, tax: 216, total: 1416, status: "PAGADA", conformityAt: d("2026-08-26"), items: { create: [{ productId: prod["INS-FERT-NPK"], quantity: 300, unitPrice: 4, receivedQty: 300 }] } } });
   await inTx((tx) => applyMovement(tx, { type: "ENTRADA", productId: prod["INS-FERT-NPK"], warehouseId: wh["ALM-INS"], quantityKg: 300, unitCost: 4, reason: "Recepción REC-2026-0001 de la OC OC-2026-0001", referenceType: "PURCHASE_ORDER", referenceCode: "OC-2026-0001", userId: uid, at: d("2026-08-25") }));
-  await db.goodsReceipt.create({ data: { code: "REC-2026-0001", orderId: po1.id, warehouseId: wh["ALM-INS"], date: d("2026-08-25"), receivedBy: "Pedro Ccama", items: [] } });
+  await db.goodsReceipt.create({ data: { code: "REC-2026-0001", orderId: po1.id, warehouseId: wh["ALM-INS"], date: d("2026-08-25"), receivedBy: "Almacén", items: [] } });
   const ap = await db.accountPayable.create({ data: { code: "CXP-2026-0001", supplierId: sup["20999100001"], purchaseOrderId: po1.id, documentRef: "F001-000123 (demo)", issueDate: d("2026-08-26"), dueDate: d("2026-09-25"), amount: 1416, paidAmount: 1416, status: "PAGADA" } });
   await db.financialTransaction.create({ data: { code: "FIN-P-0001", type: "EGRESO", category: "PAGO_PROVEEDOR", date: d("2026-09-20"), description: "Pago CXP-2026-0001 (transferencia demo)", amount: 1416, amountPen: 1416, payableId: ap.id, referenceType: "PAGO", referenceCode: "CXP-2026-0001", userId: uid } });
   const req2 = await db.purchaseRequest.create({ data: { code: "SOL-2026-0002", requestedById: agricola.id, areaId: await area("PRO"), date: d("2026-10-20"), justification: "Reposición de sacos de 25 kg para la campaña actual", status: "EN_REVISION", items: { create: [{ productId: prod["EMP-SACO-25"], quantity: 500, estimatedPrice: 2 }, { productId: prod["INS-BIO-CTRL"], quantity: 30, estimatedPrice: 38 }] } } });
@@ -299,6 +321,8 @@ export async function seedBaseData(db: PrismaClient) {
   } });
   await setSequence(db as any, "EXP-2026", 2);
 
+  await seedMarketing(db);
+
   // ---------------------------------------------------------- RR.HH.
   const days = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"];
   for (const w of wk) for (const [i, day] of days.entries()) {
@@ -306,15 +330,32 @@ export async function seedBaseData(db: PrismaClient) {
     await db.attendance.create({ data: { workerId: w.id, date: d(day), status: (w.id + i) % 11 === 0 ? "TARDANZA" : (w.id + i) % 17 === 0 ? "FALTA" : "PRESENTE", hours: 8 } });
   }
   await db.leaveRequest.createMany({ data: [
-    { workerId: wk[3].id, type: "VACACIONES", startDate: d("2026-11-16"), endDate: d("2026-11-25"), days: 10, status: "PENDIENTE" },
-    { workerId: wk[1].id, type: "VACACIONES", startDate: d("2026-08-03"), endDate: d("2026-08-14"), days: 12, status: "APROBADO" },
+    { workerId: wk[4].id, type: "VACACIONES", startDate: d("2026-11-16"), endDate: d("2026-11-25"), days: 10, status: "PENDIENTE" },
+    { workerId: wk[2].id, type: "VACACIONES", startDate: d("2026-08-03"), endDate: d("2026-08-14"), days: 12, status: "APROBADO" },
   ] });
   const t1 = await db.training.create({ data: { title: "Buenas Prácticas de Manufactura (BPM) en deshidratado", date: d("2026-06-12"), hours: 8, provider: "Capacitador externo (demo)", topic: "Inocuidad" } });
   const t2 = await db.training.create({ data: { title: "Cosecha y manipulación de pimentón", date: d("2026-09-16"), hours: 4, provider: "Área agrícola", topic: "Cosecha" } });
-  await db.trainingParticipant.createMany({ data: [...[1, 2, 6].map((i) => ({ trainingId: t1.id, workerId: wk[i].id })), ...[0, 7, 8, 9, 10, 11].map((i) => ({ trainingId: t2.id, workerId: wk[i].id }))] });
+  await db.trainingParticipant.createMany({ data: [...[2, 3, 6].map((i) => ({ trainingId: t1.id, workerId: wk[i].id })), ...[1, 7, 8, 9, 10, 11].map((i) => ({ trainingId: t2.id, workerId: wk[i].id }))] });
   await db.evaluation.createMany({ data: [
-    { workerId: wk[1].id, period: "2026-S1", score: 17, evaluator: "Rosa Huamán", comments: "Cumple metas de producción" },
-    { workerId: wk[2].id, period: "2026-S1", score: 18, evaluator: "Rosa Huamán", comments: "Rigurosidad en control de calidad" },
-    { workerId: wk[4].id, period: "2026-S1", score: 16, evaluator: "Rosa Huamán" },
+    { workerId: wk[2].id, period: "2026-S1", score: 17, evaluator: "Gerencia General", comments: "Cumple metas de producción" },
+    { workerId: wk[3].id, period: "2026-S1", score: 18, evaluator: "Gerencia General", comments: "Rigurosidad en control de calidad" },
+    { workerId: wk[5].id, period: "2026-S1", score: 16, evaluator: "Gerencia General" },
   ] });
+}
+
+/** Campañas de marketing demo (también se cargan en bases existentes si el módulo está vacío). */
+export async function seedMarketing(db: PrismaClient) {
+  if (await db.marketingCampaign.count()) return;
+  const mkt: [string, string, string, number, number, "FINALIZADA" | "ACTIVA" | "PLANIFICADA"][] = [
+    ["Lanzamiento de marca Don Pimentón", "Instagram", "2026-05-10", 1500, 42, "FINALIZADA"],
+    ["Catálogo B2B para importadores", "LinkedIn", "2026-06-01", 1200, 28, "FINALIZADA"],
+    ["Recetas con pimentón arequipeño", "Facebook", "2026-08-05", 900, 37, "FINALIZADA"],
+    ["Participación en feria de alimentos", "Feria", "2026-09-22", 8000, 65, "FINALIZADA"],
+    ["Email a importadores de EE.UU.", "Email", "2026-10-01", 400, 19, "ACTIVA"],
+    ["Web y posicionamiento SEO", "Web", "2026-10-15", 1800, 11, "ACTIVA"],
+    ["Campaña de fin de año", "Instagram", "2026-11-15", 1500, 0, "PLANIFICADA"],
+  ];
+  await db.marketingCampaign.createMany({ data: mkt.map(([name, channel, start, budgetPen, leads, status], i) => ({ code: `MKT-${String(i + 1).padStart(3, "0")}`, name, channel, startDate: d(start), budgetPen, leads, status })) });
+  await setSequence(db as any, "MKT", mkt.length);
+
 }

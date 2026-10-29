@@ -25,7 +25,7 @@ export default function ExportDetail() {
   return (
     <div className="space-y-4">
       <Link href="/exportaciones" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Exportaciones</Link>
-      <PageHeader title={`Orden internacional ${o.code}`} subtitle={`${o.customer.name} · ${o.destinationCountry} · ${o.mode === "DIRECTA" ? "Exportación directa" : `Exportación indirecta vía ${o.partner?.name}`}`}
+      <PageHeader area="Departamento de Exportaciones" title={`Orden internacional ${o.code}`} subtitle={`${o.customer.name} · ${o.destinationCountry} · ${o.mode === "DIRECTA" ? "Exportación directa" : `Exportación indirecta vía ${o.partner?.name}`}`}
         actions={<><StatusBadge status={o.status} />{!["ENTREGADA", "COBRADA", "ANULADA"].includes(o.status) && <Can perm="exports.write"><Button disabled={busy} onClick={() => run(() => api(`/exports/orders/${id}/advance`, { method: "POST" }), "Estado actualizado")}>Avanzar estado<ChevronRight className="h-4 w-4" /></Button></Can>}</>} />
       <Card><CardBody><KeyValue cols={4} items={[["Incoterm", `${o.incoterm} (${o.incotermVersion})`], ["Moneda / T.C.", `${o.currency} · ${o.exchangeRate}`], ["Importe", money(o.amount, o.currency)], ["Equivalente PEN", money(Number(o.amount) * Number(o.exchangeRate))], ["Peso neto / bruto", `${kg(o.netWeightKg)} / ${kg(o.grossWeightKg)}`], ["Costos logísticos", money(o.logisticsCost, o.currency)], ["ETD / ETA", `${date(o.etd)} / ${date(o.eta)}`], ["Lote", o.lot ? `${o.lot.code} (${o.lot.qualityStatus})` : "Por asignar"], ["Cobrado", money(o.collectedAmount, o.currency)], ["Notas", o.notes]]} /></CardBody></Card>
       <Card>

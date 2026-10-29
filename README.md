@@ -117,20 +117,22 @@ npm run contracts:deploy
 
 Contraseña común: **`DonPimenton#2026`**
 
-| Rol | Usuario |
-|---|---|
-| Administrador general | admin@donpimenton.pe |
-| Gerencia | gerencia@donpimenton.pe |
-| Responsable agrícola | agricola@donpimenton.pe |
-| Responsable de producción | produccion@donpimenton.pe |
-| Responsable de calidad | calidad@donpimenton.pe |
-| Responsable de almacén | almacen@donpimenton.pe |
-| Responsable comercial | comercial@donpimenton.pe |
-| Responsable financiero | finanzas@donpimenton.pe |
-| Responsable de exportaciones | exportaciones@donpimenton.pe |
-| Auditor (solo lectura) | auditor@donpimenton.pe |
+Solo la Gerencia General tiene nombre de persona; el resto de cuentas se identifica por su área.
 
-Cada rol ve solo sus módulos y acciones; el administrador edita la matriz de permisos en *Configuración → Roles y permisos*. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
+| Se muestra como | Rol | Usuario |
+|---|---|---|
+| **Martha Torres** · Gerencia General | Acceso total | admin@donpimenton.pe |
+| Administración del sistema | Aprobaciones y arbitraje | gerencia@donpimenton.pe |
+| Área Agrícola y Mantenimiento | Agrícola | agricola@donpimenton.pe |
+| Procesamiento y Calidad · Producción | Producción | produccion@donpimenton.pe |
+| Procesamiento y Calidad · Calidad | Calidad | calidad@donpimenton.pe |
+| Comercial y Logística · Almacén | Almacén | almacen@donpimenton.pe |
+| Comercial y Logística · Ventas | Comercial | comercial@donpimenton.pe |
+| Administración y Finanzas | Finanzas | finanzas@donpimenton.pe |
+| Departamento de Exportaciones | Exportaciones y marketing | exportaciones@donpimenton.pe |
+| Auditoría interna | Solo lectura | auditor@donpimenton.pe |
+
+Cada rol ve solo sus módulos y acciones; la Gerencia General edita la matriz de permisos en *Configuración → Roles y permisos*. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
 
 ---
 
@@ -170,11 +172,13 @@ Prueba E2E de la interfaz (con API, web y Hardhat activos; **reinicia la demostr
 npm run test:e2e
 ```
 
-Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — 14/14 contratos, 34/34 API, 17/17 verificaciones E2E.
+Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — 14/14 contratos, 38/38 API, 23/23 verificaciones E2E.
 
 ---
 
 ## Alcance de esta versión
+
+**Diseño:** identidad del panel de Gerencia (DM Sans + Fraunces, sidebar verde por áreas del organigrama, KPIs con tendencia vs. mes anterior, cadena productiva, exportaciones por destino, estado por área), páginas **Organigrama**, **Marketing y marca** y **Smart Contract** (hero conectado al panel blockchain real).
 
 **Implementado y verificado:** autenticación y permisos por rol, auditoría, dashboard calculado desde la BD, gestión agrícola, producción por etapas con rendimiento y merma, calidad con especificaciones configurables por producto/cliente y COA con hash, inventarios (disponible/reservado/cuarentena, kardex, transferencias, ajustes autorizados, alertas, trazabilidad por lote, sacos de 25 kg), compras (solicitud → aprobación de Gerencia → OC → recepción → conformidad → pago), ventas (por kg o saco, impuestos configurables, reservas FEFO, comprobante interno, cobros), logística (5 estados, política de descuento configurable, evidencia de conformidad, devoluciones), exportaciones (directa/indirecta, Incoterms con versión, requisitos documentales que solo se verifican con evidencia), RR.HH. (datos sensibles enmascarados por rol), finanzas (PEN/USD con tipo de cambio, CxC/CxP, flujo de caja vs. presupuesto, costos por campaña, rentabilidad por lote), smart contracts reales, reportes PDF y Excel, modo claro/oscuro, diseño responsive.
 

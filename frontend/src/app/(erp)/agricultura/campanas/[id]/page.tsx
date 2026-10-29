@@ -24,7 +24,7 @@ export default function CampaignDetail() {
   return (
     <div className="space-y-4">
       <Link href="/agricultura" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Campañas</Link>
-      <PageHeader title={`Campaña ${c.code}`} subtitle={`${c.parcel.code} ${c.parcel.name} · ${c.variety}`} icon={<Wheat className="h-5 w-5" />}
+      <PageHeader area="Área Agrícola · Campaña" title={`Campaña ${c.code}`} subtitle={`${c.parcel.code} ${c.parcel.name} · ${c.variety}`} icon={<Wheat className="h-5 w-5" />}
         actions={<><StatusBadge status={c.status} /><Can perm="agri.write"><Button variant="outline" onClick={() => setAct(true)}><Plus className="h-4 w-4" />Actividad</Button><Button onClick={() => setHarv(true)}><Wheat className="h-4 w-4" />Registrar cosecha</Button></Can></>} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Cosechado" value={kg(c.kpis.harvestedKg)} hint={`Estimado: ${kg(c.estimatedYieldKg)}`} />

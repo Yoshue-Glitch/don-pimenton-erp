@@ -22,7 +22,7 @@ export default function OrderDetail() {
   return (
     <div className="space-y-4">
       <Link href="/produccion" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ArrowLeft className="h-4 w-4" />Producción</Link>
-      <PageHeader title={`Orden ${o.code}`} subtitle={`Lote origen ${o.sourceLot.code} · campaña ${o.sourceLot.campaign?.code ?? "—"} · responsable ${o.responsible.name}`}
+      <PageHeader area="Procesamiento y Calidad · Orden de producción" title={`Orden ${o.code}`} subtitle={`Lote origen ${o.sourceLot.code} · campaña ${o.sourceLot.campaign?.code ?? "—"} · responsable ${o.responsible.name}`}
         actions={<><StatusBadge status={o.status} />{o.status === "EN_PROCESO" && <Can perm="production.write">{o.currentStage !== "ALMACEN" ? <Button onClick={() => setAdv(true)}>Completar etapa: {o.stageLabels[o.currentStage]}<ChevronRight className="h-4 w-4" /></Button> : <Button variant="secondary" onClick={() => setDone(true)}><PackageCheck className="h-4 w-4" />Registrar producto terminado</Button>}</Can>}</>} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Peso inicial" value={kg(o.initialWeightKg, 1)} />

@@ -20,3 +20,10 @@ export const date = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString(
 export const dateTime = (v: unknown) => (v ? new Date(String(v)).toLocaleString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 export const short = (h?: string | null, n = 10) => (h ? `${h.slice(0, n)}…${h.slice(-6)}` : "—");
 export const isoDay = (d = new Date()) => d.toISOString().slice(0, 10);
+
+/** Identificación de un trabajador: su nombre si lo tiene; si no, el cargo (puestos sin nombre de persona). */
+export const workerLabel = (w?: { firstName?: string | null; lastName?: string | null; position?: string | null; code?: string } | null) => {
+  if (!w) return "—";
+  const name = [w.firstName, w.lastName].filter(Boolean).join(" ").trim();
+  return name ? `${name}${w.position ? ` · ${w.position}` : ""}` : `${w.position ?? "Puesto"}${w.code ? ` (${w.code})` : ""}`;
+};

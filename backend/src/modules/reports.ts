@@ -12,14 +12,15 @@ import { STAGE_LABEL } from "./production";
 
 export const reportsRouter = Router();
 
-const RED = "#A52A2A", GREEN = "#285943", DARK = "#263238", GOLD = "#C8A46B";
+const RED = "#A52A2A", GREEN = "#1C3F2B", DARK = "#1F2937", GOLD = "#D9A441";
 const fmt = (v: any, d = 2) => Number(v ?? 0).toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d });
 const day = (d?: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "—");
 // Helvetica (WinAnsi) no incluye algunos símbolos: se sustituyen.
 const safe = (s: unknown) => String(s ?? "—").replace(/→/g, "->").replace(/[—–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/[^\x00-\xFF]/g, "");
 
 function header(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
-  doc.rect(0, 0, doc.page.width, 70).fill(RED);
+  doc.rect(0, 0, doc.page.width, 70).fill(GREEN);
+  doc.rect(0, 70, doc.page.width, 3).fill(RED);
   doc.fillColor("#FFFFFF").fontSize(18).font("Helvetica-Bold").text("DON PIMENTÓN ERP", 40, 18);
   doc.fontSize(9).font("Helvetica").text("Agroindustrial Management & Blockchain  ·  Del campo al mercado, con calidad y trazabilidad", 40, 42);
   doc.fillColor(DARK).fontSize(15).font("Helvetica-Bold").text(safe(title), 40, 90);

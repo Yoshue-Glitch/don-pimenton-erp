@@ -8,6 +8,7 @@ import { Card, PageHeader, StatusBadge, Button, Tabs, Modal, Notice, Badge, Fiel
 import { ServerTable, LocalTable, Table } from "@/components/DataTable";
 import { CrudSection, useOptions } from "@/components/Crud";
 import { FormDialog } from "@/components/FormDialog";
+import { ModuleKpis } from "@/components/ModuleKpis";
 import { Can, useAuth, useToast } from "@/components/providers";
 
 export default function Compras() {
@@ -30,8 +31,9 @@ export default function Compras() {
   const act = async (fn: () => Promise<any>, ok: string) => { try { await fn(); toast.success(ok); r(); setDetail(null); } catch (e: any) { toast.error("Operación rechazada", e.message); } };
   return (
     <div className="space-y-4">
-      <PageHeader title="Compras y proveedores" subtitle="Solicitud → Revisión → Aprobación de Gerencia → Orden de compra → Recepción → Conformidad → Pago" icon={<ShoppingCart className="h-5 w-5" />}
+      <PageHeader area="Administración y Finanzas" title="Compras" subtitle="Solicitud → Revisión → Aprobación de Gerencia → Orden de compra → Recepción → Conformidad → Pago" icon={<ShoppingCart className="h-5 w-5" />}
         actions={<Can perm="purchases.write"><Button onClick={() => setNewReq(true)}><Plus className="h-4 w-4" />Nueva solicitud</Button></Can>} />
+      <ModuleKpis module="compras" reloadKey={rk} />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "solicitudes", label: "Solicitudes" }, { id: "ordenes", label: "Órdenes de compra" }, { id: "cxp", label: "Cuentas por pagar" }, { id: "proveedores", label: "Proveedores" }]} />
       <Card>
         {tab === "solicitudes" && <ServerTable path="/purchasing/requests" searchable={false} reloadKey={rk} onRowClick={setDetail}
