@@ -1,7 +1,7 @@
 {
   "name": "don-pimenton-erp",
   "private": true,
-  "description": "DON PIMENTÓN ERP | Agroindustrial Management & Blockchain",
+  "description": "DON PIMENT\u00d3N ERP | Agroindustrial Management & Blockchain",
   "scripts": {
     "install:all": "npm --prefix blockchain install --legacy-peer-deps && npm --prefix backend install && npm --prefix frontend install",
     "chain": "npm --prefix blockchain run node",
@@ -14,6 +14,7 @@
     "web": "npm --prefix frontend run dev",
     "test:api": "npm --prefix backend test",
     "test:e2e": "node frontend/e2e/ui.e2e.js",
-    "test": "npm run contracts:test && npm run test:api"
+    "test": "npm run contracts:test && npm run test:api",
+    "test:e2e:smart": "node frontend/e2e/smart-contract.e2e.js"
   }
 }

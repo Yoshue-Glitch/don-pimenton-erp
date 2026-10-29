@@ -178,7 +178,7 @@ Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUE
 
 ## Alcance de esta versión
 
-**Diseño:** identidad del panel de Gerencia (DM Sans + Fraunces, sidebar verde por áreas del organigrama, KPIs con tendencia vs. mes anterior, cadena productiva, exportaciones por destino, estado por área), páginas **Organigrama**, **Marketing y marca** y **Smart Contract** (hero conectado al panel blockchain real).
+**Diseño:** identidad del panel de Gerencia (DM Sans + Fraunces, sidebar verde por áreas del organigrama, KPIs con tendencia vs. mes anterior, cadena productiva, exportaciones por destino, estado por área), páginas **Organigrama**, **Marketing y marca** y **Smart Contract**: hero conectado al panel blockchain real, **ruta de exportación de 6 fases / 18 pasos** (guía oficial) con el estado de cada paso según la evidencia del ERP, **9 modelos bilingües** en Word (carta de presentación, cotización internacional, ficha técnica, tarjeta comercial, factura comercial, packing list, solicitud de certificado de origen, instrucciones de embarque y contrato de compraventa con pago condicionado al Smart Contract) que pueden adjuntarse como evidencia con su SHA-256, y guía de DUA, errores comunes y recursos oficiales.
 
 **Datos de demostración (v2):** empresa rentable — una cosecha mensual (~12 t de fresco → ~2.3 t de páprika), ~37 pedidos al año a S/ 15–16 por kg, planilla alineada con RR.HH.; todos los meses operativos en ganancia y margen neto ≈ 15 % (≈ 18 % en los últimos 12 meses). Al desplegar sobre una base con datos v1 (p. ej. Render), se recargan automáticamente una sola vez.
 
