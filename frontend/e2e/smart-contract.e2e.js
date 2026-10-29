@@ -8,7 +8,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
-const PASS = process.env.E2E_PASSWORD || PASS;
+const PASS = process.env.E2E_PASSWORD || 'DonPimenton#2026';
 const OUT = process.env.E2E_OUT || fs.mkdtempSync(path.join(os.tmpdir(), 'dp-sc-'));
 const ok = (c, m) => { if (!c) throw new Error('FALLO: ' + m); console.log('  ✓', m); };
 async function login(p, email) {
