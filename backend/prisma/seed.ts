@@ -1,10 +1,20 @@
 import { PrismaClient } from "@prisma/client";
-import { seedSecurity, resetBusinessData, seedBaseData, syncDemoIdentities, seedMarketing, DEMO_USERS, DEMO_PASSWORD } from "../src/seed/seedData";
+import { seedSecurity, resetBusinessData, seedBaseData, syncDemoIdentities, seedMarketing, DEMO_DATA_VERSION, DEMO_USERS, DEMO_PASSWORD } from "../src/seed/seedData";
 import { deployContracts } from "../src/blockchain/chain";
 
 const db = new PrismaClient();
 
 async function main() {
+  const version = Number((await db.setting.findUnique({ where: { key: "demo.dataVersion" } }))?.value ?? 1);
+  if (process.argv.includes("--if-empty") && (await db.lot.count()) > 0 && version < DEMO_DATA_VERSION) {
+    // datos demo de una versión anterior: se recargan una sola vez (como "Reiniciar demostración")
+    await seedSecurity(db);
+    await resetBusinessData(db);
+    await seedBaseData(db);
+    await db.auditLog.create({ data: { action: "DEMO_DATOS_ACTUALIZADOS", entity: "demo", details: { from: version, to: DEMO_DATA_VERSION } } });
+    console.log(`Datos de demostración actualizados de v${version} a v${DEMO_DATA_VERSION} (recarga única).`);
+    return;
+  }
   if (process.argv.includes("--if-empty") && (await db.lot.count()) > 0) {
     // base ya cargada (p. ej. en Render): solo se actualizan permisos, nombres y cargos
     await seedSecurity(db);

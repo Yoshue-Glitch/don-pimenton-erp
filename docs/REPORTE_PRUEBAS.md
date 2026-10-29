@@ -10,6 +10,8 @@ Ejecución del **29-oct-2026** en el entorno de desarrollo (Linux, Node.js 22.22
 | Compilación de producción del frontend | `next build` | correcta (26 rutas) |
 | Verificación de tipos | `tsc --noEmit` (backend y frontend) | sin errores |
 
+Datos de demostración v2 (empresa rentable): resultado neto ≈ 14.7 % sobre todo el histórico, todos los meses de oct-2025 a oct-2026 en ganancia; recarga única verificada en una simulación del contenedor de Render (v1 → v2 en el primer arranque, sin recarga en el segundo). Las suites volvieron a pasar con estos datos: 14/14 contratos, 38/38 API, 23/23 E2E.
+
 Durante las pruebas E2E se detectó y corrigió un defecto real: el correlativo de campañas `CAM-2026` colisionaba con un código sembrado ("Registro duplicado" al crear una campaña desde la interfaz). Se ajustó el seed y se agregó la prueba de regresión *"Correlativos > los códigos nuevos no colisionan con los datos sembrados"*.
 
 **No cubierto:** pruebas de carga y de concurrencia masiva, pentesting, compatibilidad con navegadores distintos de Chromium y ejecución con Docker Compose (sin daemon Docker en el entorno).

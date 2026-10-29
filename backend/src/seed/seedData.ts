@@ -16,6 +16,9 @@ import { createDispatch, advanceDispatch } from "../modules/logistics";
 import { applyMovement } from "../modules/inventory.service";
 
 // En un despliegue público defina DEMO_PASSWORD para no usar la contraseña documentada.
+/** Versión de los datos demo: al subirla, las bases existentes (p. ej. Render) se recargan una vez al iniciar. */
+export const DEMO_DATA_VERSION = 2;
+
 export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "DonPimenton#2026";
 
 /** Usuarios demo: solo la Gerencia General es una persona; el resto se identifica por su área. */
@@ -112,6 +115,7 @@ export async function resetBusinessData(db: PrismaClient) {
 const d = (s: string) => new Date(s);
 
 export async function seedBaseData(db: PrismaClient) {
+  await db.setting.upsert({ where: { key: "demo.dataVersion" }, create: { key: "demo.dataVersion", value: DEMO_DATA_VERSION }, update: { value: DEMO_DATA_VERSION } });
   const admin = await db.user.findUniqueOrThrow({ where: { email: "admin@donpimenton.pe" } });
   const uid = admin.id;
   const area = async (code: string) => (await db.area.findUniqueOrThrow({ where: { code } })).id;
@@ -191,8 +195,8 @@ export async function seedBaseData(db: PrismaClient) {
   }
   for (let m = 1; m <= 12; m++) {
     await db.budget.createMany({ data: [
-      { year: 2026, month: m, category: "VENTAS", type: "INGRESO", amountPen: 14000 },
-      { year: 2026, month: m, category: "COSTOS_OPERATIVOS", type: "EGRESO", amountPen: 9000 },
+      { year: 2026, month: m, category: "VENTAS", type: "INGRESO", amountPen: 36000 },
+      { year: 2026, month: m, category: "COSTOS_OPERATIVOS", type: "EGRESO", amountPen: 30000 },
     ] });
   }
 
@@ -205,16 +209,16 @@ export async function seedBaseData(db: PrismaClient) {
 
   // ---------------------------------------------------------- histórico de producción y ventas
   const campaigns = [
-    { code: "CAM-2025-001", parcel: "PAR-002", variety: "Papri King", sow: "2025-05-20", est: "2025-11-15", yieldKg: 4500 },
-    { code: "CAM-2025-002", parcel: "PAR-001", variety: "Papri King", sow: "2025-09-01", est: "2026-02-20", yieldKg: 5000 },
-    { code: "CAM-2026-001", parcel: "PAR-002", variety: "Sonora", sow: "2026-01-10", est: "2026-07-01", yieldKg: 7000 },
+    { code: "CAM-2025-001", parcel: "PAR-002", variety: "Papri King", sow: "2025-05-20", est: "2025-11-01", yieldKg: 38000 },
+    { code: "CAM-2025-002", parcel: "PAR-001", variety: "Papri King", sow: "2025-09-01", est: "2026-02-01", yieldKg: 52000 },
+    { code: "CAM-2026-001", parcel: "PAR-002", variety: "Sonora", sow: "2026-01-10", est: "2026-06-01", yieldKg: 62000 },
   ];
   const campId: Record<string, number> = {};
   for (const c of campaigns) {
     const camp = await db.campaign.create({ data: { code: c.code, parcelId: parcel[c.parcel], variety: c.variety, sowingDate: d(c.sow), estHarvestDate: d(c.est), estimatedYieldKg: c.yieldKg, status: "EN_CURSO" } });
     campId[c.code] = camp.id;
     const base = new Date(c.sow);
-    const acts: [any, number, string, number][] = [["SIEMBRA", 0, "Trasplante", 900], ["RIEGO", 30, "Riego por gravedad", 450], ["FERTILIZACION", 50, "Fertilización NPK", 1100], ["CONTROL_PLAGAS", 80, "Control biológico", 600], ["MANTENIMIENTO", 100, "Deshierbo y mantenimiento de canales", 500]];
+    const acts: [any, number, string, number][] = [["SIEMBRA", 0, "Trasplante", 2700], ["RIEGO", 30, "Riego por gravedad", 1350], ["FERTILIZACION", 50, "Fertilización NPK", 3300], ["CONTROL_PLAGAS", 80, "Control biológico", 1800], ["MANTENIMIENTO", 100, "Deshierbo y mantenimiento de canales", 1500]];
     for (const [type, off, desc, cost] of acts) {
       const date = new Date(base.getTime() + off * 86400000);
       const a = await db.agriActivity.create({ data: { campaignId: camp.id, type, date, description: desc, responsible: "Área Agrícola", cost } });
@@ -224,15 +228,39 @@ export async function seedBaseData(db: PrismaClient) {
 
   type Batch = { camp: string; raw: string; lot: string; date: string; rawKg: number; finalKg: number; approve: boolean; sales: [string, number, number, string, boolean][] };
   // sales: [cliente, sacos, precio por kg, fecha, cobrado]
-  const batches: Batch[] = [
-    { camp: "CAM-2025-001", raw: "MP-2025-021", lot: "DP-2025-021", date: "2025-11-10", rawKg: 2400, finalKg: 475, approve: true, sales: [["CLI-0002", 8, 14.5, "2025-11-25", true], ["CLI-0004", 10, 14.8, "2025-12-03", true]] },
-    { camp: "CAM-2025-001", raw: "MP-2025-022", lot: "DP-2025-022", date: "2025-12-06", rawKg: 2000, finalKg: 400, approve: true, sales: [["CLI-0003", 6, 15, "2025-12-20", true], ["CLI-0002", 10, 14.5, "2026-01-12", true]] },
-    { camp: "CAM-2025-002", raw: "MP-2026-011", lot: "DP-2026-011", date: "2026-02-15", rawKg: 2600, finalKg: 525, approve: true, sales: [["CLI-0004", 12, 15, "2026-03-02", true], ["CLI-0001", 9, 15, "2026-03-18", true]] },
-    { camp: "CAM-2025-002", raw: "MP-2026-012", lot: "DP-2026-012", date: "2026-03-20", rawKg: 2200, finalKg: 450, approve: true, sales: [["CLI-0002", 10, 15.2, "2026-04-08", true], ["CLI-0003", 8, 15.5, "2026-05-06", true]] },
-    { camp: "CAM-2026-001", raw: "MP-2026-013", lot: "DP-2026-013", date: "2026-06-18", rawKg: 2500, finalKg: 500, approve: false, sales: [] },
-    { camp: "CAM-2026-001", raw: "MP-2026-014", lot: "DP-2026-014", date: "2026-07-25", rawKg: 2300, finalKg: 475, approve: true, sales: [["CLI-0004", 9, 15, "2026-08-10", true], ["CLI-0001", 6, 15, "2026-09-02", true]] },
-    { camp: "CAM-2026-001", raw: "MP-2026-015", lot: "DP-2026-015", date: "2026-09-05", rawKg: 2000, finalKg: 400, approve: true, sales: [["CLI-0002", 5, 15.5, "2026-09-22", true], ["CLI-0004", 4, 15.5, "2026-10-12", false]] },
+  // Una cosecha mensual (~13 t de fresco → ~2.6 t de páprika); cada lote se vende en 3 pedidos durante el mes siguiente.
+  // [lote MP, lote PT, sacos producidos]; una cosecha el día 3 de cada mes (oct-2025 → oct-2026) → cobros todos los meses
+  const lots: [string, string, number][] = [
+    ["MP-2025-021", "DP-2025-021", 93], ["MP-2025-022", "DP-2025-022", 95], ["MP-2025-023", "DP-2025-023", 91],
+    ["MP-2026-011", "DP-2026-011", 95], ["MP-2026-012", "DP-2026-012", 97], ["MP-2026-016", "DP-2026-016", 93],
+    ["MP-2026-017", "DP-2026-017", 91], ["MP-2026-014", "DP-2026-014", 95], ["MP-2026-018", "DP-2026-018", 97],
+    ["MP-2026-019", "DP-2026-019", 93], ["MP-2026-020", "DP-2026-020", 95], ["MP-2026-015", "DP-2026-015", 93], ["MP-2026-010", "DP-2026-010", 95],
   ];
+  const campaignFor = (iso: string) => (iso < "2026-01-15" ? "CAM-2025-001" : iso < "2026-06-01" ? "CAM-2025-002" : "CAM-2026-001");
+  const plan: [string, string, string, string, number, boolean][] = lots.map(([raw, lot, sacks], i) => {
+    const date = new Date(Date.UTC(2025, 9 + i, 3)).toISOString().slice(0, 10);
+    return [campaignFor(date), raw, lot, date, sacks, true];
+  });
+  // lote rechazado por Calidad (ejemplo de bloqueo): pequeño, sin ventas
+  plan.splice(9, 0, ["CAM-2026-001", "MP-2026-013", "DP-2026-013", "2026-06-12", 24, false]);
+  const buyers = ["CLI-0002", "CLI-0004", "CLI-0001", "CLI-0003"];
+  const addDays = (iso: string, n: number) => new Date(d(iso).getTime() + n * 86400000).toISOString().slice(0, 10);
+  let k = 0;
+  const batches: Batch[] = plan.map(([camp, raw, lot, date, sacks, approve], bi) => {
+    const sales: Batch["sales"] = [];
+    if (approve) {
+      // 3 pedidos (≈40 % / 33 % / 24 % del lote); queda un pequeño saldo en almacén
+      const parts = [Math.round(sacks * 0.4), Math.round(sacks * 0.33), Math.round(sacks * 0.24)];
+      [12, 20, 32].forEach((off, j) => {
+        const price = [15.0, 15.2, 15.4, 15.6][(k + j) % 4] + (bi % 3) * 0.1;
+        const when = addDays(date, off);
+        if (when > "2026-10-28") return; // no se registran ventas con fecha futura
+        sales.push([buyers[k % 4], parts[j], Math.round(price * 100) / 100, when, addDays(when, 10) <= "2026-10-28"]);
+        k++;
+      });
+    }
+    return { camp, raw, lot, date, rawKg: sacks * 25 * 5, finalKg: sacks * 25, approve, sales };
+  });
   let opN = 0;
   for (const b of batches) {
     const harvestDate = d(b.date);
@@ -246,7 +274,7 @@ export async function seedBaseData(db: PrismaClient) {
       await inTx((tx) => advanceStage(tx, order.id, { outputKg: Math.round(out), at, ...(i === 2 ? { temperatureC: 58 + (opN % 4), durationH: 28 + (opN % 5) } : {}) }, uid));
     }
     const end = new Date(start.getTime() + 8 * 86400000);
-    await inTx((tx) => completeOrder(tx, order.id, { finalWeightKg: b.finalKg, outputs: [{ quantityKg: b.finalKg, code: b.lot }], laborCost: Math.round(b.finalKg * 2.2), energyCost: Math.round(b.finalKg * 1.9), packagingCost: (b.finalKg / 25) * 2, otherCost: 60, expiryMonths: 18, at: end }, uid));
+    await inTx((tx) => completeOrder(tx, order.id, { finalWeightKg: b.finalKg, outputs: [{ quantityKg: b.finalKg, code: b.lot }], laborCost: Math.round(b.finalKg * 1.6), energyCost: Math.round(b.finalKg * 1.3), packagingCost: (b.finalKg / 25) * 2, otherCost: 150, expiryMonths: 18, at: end }, uid));
     const lot = await db.lot.findUniqueOrThrow({ where: { code: b.lot } });
     const qcAt = new Date(end.getTime() + 86400000);
     const insp = await inTx((tx) => createInspection(tx, b.approve
@@ -281,7 +309,7 @@ export async function seedBaseData(db: PrismaClient) {
   for (let i = 0; i < 12; i++) {
     const date = new Date(2025, 10 + i, 28);
     if (date > new Date()) break;
-    for (const [cat, desc, amount] of [["SERVICIOS", "Energía eléctrica planta (demo)", 650], ["ADMINISTRACION", "Servicios contables externos (demo)", 800], ["PLANILLA", "Planilla de personal permanente (demo)", 9500]] as const) {
+    for (const [cat, desc, amount] of [["SERVICIOS", "Energía eléctrica planta (demo)", 1200], ["ADMINISTRACION", "Servicios contables externos (demo)", 800], ["PLANILLA", "Planilla de personal permanente (demo)", 18200]] as const) {
       await db.financialTransaction.create({ data: { code: `FIN-G-${date.getFullYear()}${date.getMonth() + 1}-${cat}`, type: "EGRESO", category: cat, date, description: desc, amount, amountPen: amount, referenceType: "MANUAL", userId: uid } });
     }
   }
