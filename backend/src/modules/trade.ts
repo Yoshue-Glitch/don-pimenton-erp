@@ -210,3 +210,56 @@ tradeRouter.get("/overview", requirePerm("trade.read"), ah(async (_req, res) => 
     voyages: ships.filter((s) => ["EN_TRANSITO", "ARRIBADO", "ENTREGADO"].includes(s.status)).map((s) => ({ code: s.code, progress: s.voyageProgress, status: s.status, vessel: s.vessel, origin: s.originPort, destination: s.destinationPort })),
   });
 }));
+
+/** Dashboard ejecutivo de exportación (sección 4): todo calculado desde la base de datos. */
+tradeRouter.get("/dashboard", requirePerm("dashboard.read"), ah(async (req, res) => {
+  const p = await T.params();
+  const [orders, lots, labs, pallets, ships, txCount] = await Promise.all([
+    prisma.productionOrder.findMany({ select: { status: true, initialWeightKg: true, finalWeightKg: true, endDate: true, startDate: true, totalCost: true } }),
+    prisma.lot.findMany({ where: { type: "PRODUCTO_TERMINADO" }, select: { qualityStatus: true, status: true, product: { select: { code: true } } } }),
+    prisma.labAnalysis.findMany({ select: { result: true, analysisDate: true } }),
+    prisma.pallet.findMany({ select: { status: true, jars: true, netKg: true } }),
+    prisma.exportShipment.findMany({ include: { costs: true, agreement: true } }),
+    prisma.blockchainTransaction.count({ where: { status: "CONFIRMADA" } }),
+  ]);
+  const done = orders.filter((o) => o.status === "COMPLETADA");
+  const ini = done.reduce((a, o) => a + Number(o.initialWeightKg), 0), fin = done.reduce((a, o) => a + Number(o.finalWeightKg ?? 0), 0);
+  const inv = await prisma.inventoryBalance.findMany({ include: { product: { select: { code: true, type: true, name: true } } } });
+  const ptKg = inv.filter((b) => b.product.type === "PRODUCTO_TERMINADO").reduce((a, b) => a + Number(b.availableKg) + Number(b.reservedKg), 0);
+  const invDist: Record<string, number> = {};
+  for (const b of inv) { const k = b.product.type === "PRODUCTO_TERMINADO" ? (b.product.code === "PT-PAP-FRASCO-113" ? "Frascos 4 oz (kg)" : "Granel / sacos (kg)") : b.product.type === "MATERIA_PRIMA" ? "Fruto fresco (kg)" : null as any; if (k) invDist[k] = (invDist[k] ?? 0) + Number(b.availableKg) + Number(b.reservedKg) + Number(b.quarantineKg); }
+  const months: Record<string, { prod: number; cost: number; fresh: number }> = {};
+  for (const o of done) { const m = (o.endDate ?? o.startDate).toISOString().slice(0, 7); months[m] ??= { prod: 0, cost: 0, fresh: 0 }; months[m].prod += Number(o.finalWeightKg ?? 0); months[m].fresh += Number(o.initialWeightKg); months[m].cost += Number(o.totalCost ?? 0); }
+  const shipCosts = ships.reduce((a, s) => a + s.costs.reduce((x, c) => x + Number(c.amountPen), 0), 0);
+  const closed = ships.filter((s) => s.status === "CERRADO");
+  const rev = closed.reduce((a, s) => a + Number(s.amountUsd) * Number(s.exchangeRate), 0), cst = closed.reduce((a, s) => a + s.costs.reduce((x, c) => x + Number(c.amountPen), 0), 0);
+  const byStatus: Record<string, number> = {}; for (const s of ships) byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
+  const quality = { APROBADO: lots.filter((l) => l.qualityStatus === "APROBADO").length, RETENIDO: lots.filter((l) => l.qualityStatus === "CUARENTENA").length, RECHAZADO: lots.filter((l) => l.qualityStatus === "RECHAZADO").length, EN_EVALUACION: lots.filter((l) => ["EN_EVALUACION", "PENDIENTE"].includes(l.qualityStatus)).length };
+  const customs = ships.filter((s) => s.damDate).map((s) => ({ code: s.code, ...T.customsLight(s, p) }));
+  const comp = await prisma.complianceItem.findMany({ where: { scope: "EMPRESA" } });
+  const alerts = [
+    ...comp.map((c) => ({ c, st: T.complianceStatus(c) })).filter((x) => ["VENCIDO", "POR_VENCER", "REQUIERE_VALIDACION"].includes(x.st)).map((x) => ({ level: x.st === "VENCIDO" ? "danger" : "warning", type: "Registro " + x.st.toLowerCase().replace("_", " "), message: `${x.c.name}${x.c.validUntil ? " · vence " + x.c.validUntil.toISOString().slice(0, 10) : ""}`, href: "/cumplimiento" })),
+    ...lots.filter((l) => l.qualityStatus === "RECHAZADO" || l.qualityStatus === "CUARENTENA").slice(0, 3).map(() => ({ level: "danger", type: "Lote retenido o rechazado", message: "Revise el panel de calidad de exportación", href: "/calidad-exportacion" })),
+    ...ships.filter((s) => s.docsStatus === "PENDIENTE" && ["RESERVADO", "CONFIRMADO", "DOCUMENTACION"].includes(s.status)).map((s) => ({ level: "warning", type: "Documentos pendientes", message: `${s.code} · paquete documental por validar`, href: `/comex/${s.id}` })),
+    ...ships.filter((s) => s.docsStatus === "RECHAZADO").map((s) => ({ level: "danger", type: "Paquete documental rechazado", message: `${s.code}: ${((s.docsErrors as any[]) ?? [])[0] ?? ""}`, href: `/comex/${s.id}` })),
+    ...ships.filter((s) => s.agreement && s.agreement.status === "FONDEADO").map((s) => ({ level: "info", type: "Smart contract por ejecutar", message: `${s.agreement!.code} · ${s.status.toLowerCase().replace("_", " ")}`, href: `/smart-contract` })),
+    ...customs.filter((c) => ["AMBAR", "ROJO"].includes(c.light)).map((c) => ({ level: c.light === "ROJO" ? "danger" : "warning", type: `DAM ${c.light.toLowerCase()}`, message: `${c.code} · ${c.phase}`, href: "/aduanas" })),
+  ];
+  const canCosts = hasPerm(req, "costs.read");
+  res.json({
+    cards: {
+      productionKg: fin, yieldPct: ini ? Number((fin / ini * 100).toFixed(2)) : null, lotsProcessing: orders.filter((o) => o.status === "EN_PROCESO").length,
+      lotsApproved: quality.APROBADO, lotsRetained: quality.RETENIDO + quality.RECHAZADO, finishedStockKg: Number(ptKg.toFixed(3)),
+      jarsAvailable: pallets.filter((x) => x.status === "DISPONIBLE").reduce((a, b) => a + b.jars, 0),
+      intlOrders: ships.filter((s) => s.status !== "ANULADO").length, activeShipments: ships.filter((s) => ["DESPACHADO", "EN_TRANSITO", "ARRIBADO", "ENTREGADO"].includes(s.status)).length,
+      completedExports: closed.length, accumulatedCostsPen: canCosts ? Number(shipCosts.toFixed(2)) : null, marginPct: canCosts && rev ? Number(((rev - cst) / rev * 100).toFixed(2)) : null,
+      activeContracts: ships.filter((s) => s.agreement && ["PROPUESTO", "ACEPTADO", "FONDEADO", "EN_DISPUTA"].includes(s.agreement.status)).length, chainTxs: txCount,
+    },
+    monthly: Object.entries(months).sort().map(([m, v]) => ({ month: m, productionKg: Number(v.prod.toFixed(1)), costPen: canCosts ? Number(v.cost.toFixed(0)) : null, yieldPct: v.fresh ? Number((v.prod / v.fresh * 100).toFixed(2)) : null })),
+    inventory: Object.entries(invDist).map(([name, value]) => ({ name, value: Number(value.toFixed(1)) })),
+    exportStatus: Object.entries(byStatus).map(([name, value]) => ({ name, value })), quality: Object.entries(quality).map(([name, value]) => ({ name, value })),
+    labs: { approved: labs.filter((l) => l.result === "APROBADO").length, retained: labs.filter((l) => l.result === "RETENIDO").length, total: labs.length },
+    customs, alerts, voyages: ships.filter((s) => ["EN_TRANSITO", "ARRIBADO", "ENTREGADO"].includes(s.status)).map((s) => ({ id: s.id, code: s.code, progress: s.voyageProgress, status: s.status })),
+    dataKinds: { real: "Operación actual: venta nacional en sacos de 25 kg (Fase 1)", projected: "Exportación de frascos 4 oz: operación PROYECTADA (Fases 3–4)", demo: "Todos los valores son datos de demostración" },
+  });
+}));

@@ -406,12 +406,12 @@ export async function approveMargin(tx: Tx, id: number, user: { id: number; name
 
 export async function confirmShipment(tx: Tx, id: number, userId: number) {
   const s = await tx.exportShipment.findUniqueOrThrow({ where: { id } });
-  if (s.status === "CONFIRMADO") return s;
+  if (["CONFIRMADO", "DOCUMENTACION"].includes(s.status)) return s;
   if (s.status !== "RESERVADO") throw unprocessable("Solo se confirman pedidos con stock reservado");
   if (!s.marginApproved) throw unprocessable(`R8 — El margen estimado (${D(s.marginPct ?? 0).toFixed(2)} %) está por debajo del piso aprobado: requiere aprobación de Gerencia`);
   const blockers = await complianceBlockers(tx, s.deliveryDate);
   if (blockers.length) throw unprocessable(`R7 — Confirmación bloqueada: ${blockers.map((b) => `${b.name} (${b.reason})`).join("; ")}`, { blockers });
-  const out = await tx.exportShipment.update({ where: { id }, data: { status: "CONFIRMADO" } });
+  const out = await tx.exportShipment.update({ where: { id }, data: { status: s.docsStatus === "APROBADO" ? "DOCUMENTACION" : "CONFIRMADO" } });
   await event(tx, id, "CONFIRMACION", `Pedido ${s.code} confirmado. Se emite la confirmación de pedido y se prepara el embarque.`, "success");
   await audit(tx, userId, "CONFIRMAR", "embarque", id, {});
   return out;
@@ -440,7 +440,7 @@ export async function validateDocs(tx: Tx, id: number, input: { declaredNetKg?: 
   const okStatus = errors.length === 0;
   const out = await tx.exportShipment.update({
     where: { id },
-    data: { docsStatus: okStatus ? "APROBADO" : "RECHAZADO", docsErrors: errors, declaredNetKg: declaredNet, declaredGrossKg: declaredGross, docsApprovedAt: okStatus ? new Date() : null, ...(okStatus && ["CONFIRMADO", "RESERVADO"].includes(s.status) ? { status: "DOCUMENTACION" } : {}) },
+    data: { docsStatus: okStatus ? "APROBADO" : "RECHAZADO", docsErrors: errors, declaredNetKg: declaredNet, declaredGrossKg: declaredGross, docsApprovedAt: okStatus ? new Date() : null, ...(okStatus && s.status === "CONFIRMADO" ? { status: "DOCUMENTACION" } : {}) },
   });
   if (okStatus) {
     await tx.complianceItem.updateMany({ where: { shipmentId: id, code: { in: ["FACTURA-PL", "COA"] } }, data: { status: "CUMPLIDO", evidence: `Paquete documental ${s.code} validado (R2/R3)` } });

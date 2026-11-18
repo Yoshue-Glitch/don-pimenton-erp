@@ -77,7 +77,7 @@ export function localAnswer(q: string) {
 async function liveContext(req: Request, portal: boolean) {
   const p = await T.params();
   const [pallets, kpis] = await Promise.all([prisma.pallet.count({ where: { status: "DISPONIBLE" } }), hasPerm(req, "kpi.read") ? T.kpis() : Promise.resolve([])]);
-  const where: any = portal ? { customerId: req.user!.customerId ?? -1 } : {};
+  const where: any = portal ? { customerId: req.user?.customerId ?? -1 } : {};
   const ships = await prisma.exportShipment.findMany({ where, orderBy: { id: "desc" }, take: 8, include: { agreement: true } });
   return {
     fecha: new Date().toISOString().slice(0, 10), paletasDisponibles: pallets, frascosDisponibles: pallets * p.jarsPerCase * p.casesPerPallet, precioReferenciaUsd: p.defaultPriceUsd,

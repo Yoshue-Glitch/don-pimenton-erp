@@ -23,12 +23,22 @@ import { reportsRouter } from "./modules/reports";
 import { adminRouter } from "./modules/admin";
 import { demoRouter } from "./modules/demo";
 import { marketingRouter } from "./modules/marketing";
+import { tradeRouter } from "./modules/trade";
+import { exportDemoRouter } from "./modules/exportDemo";
+import { assistantRouter } from "./modules/assistant";
+import { paymentsRouter, stripeWebhook, mercadopagoWebhook } from "./modules/payments";
+import { portalRouter, publicRouter } from "./modules/portal";
+import { reverseRouter, rsRouter } from "./modules/sustainability";
+import { ah } from "./lib/http";
 
 export function createApp() {
   const app = express();
   app.set("trust proxy", "loopback");
   app.use(helmet());
-  app.use(express.json({ limit: "1mb" }));
+  // Webhooks de pasarelas: cuerpo crudo para verificar la firma (sin sesión ni CSRF)
+  app.post("/api/payments/webhooks/stripe", express.raw({ type: "application/json", limit: "1mb" }), ah(stripeWebhook));
+  app.use(express.json({ limit: "10mb" }));
+  app.all("/api/payments/webhooks/mercadopago", ah(mercadopagoWebhook));
   app.use(cookieParser());
   if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
@@ -37,6 +47,7 @@ export function createApp() {
   const api = express.Router();
   api.use(authenticate, csrfGuard);
   api.use("/auth", authRouter);
+  api.use("/public", publicRouter);
   api.use(requireAuth, idempotency);
   api.use("/dashboard", dashboardRouter);
   api.use("/agriculture", requireModule("agricultura"), agricultureRouter);
@@ -55,6 +66,13 @@ export function createApp() {
   api.use("/reports", reportsRouter);
   api.use("/admin", adminRouter);
   api.use("/demo", demoRouter);
+  api.use("/trade", requireModule("comex"), tradeRouter);
+  api.use("/export-demo", exportDemoRouter);
+  api.use("/assistant", requireModule("asistente"), assistantRouter);
+  api.use("/payments", requireModule("pagos"), paymentsRouter);
+  api.use("/portal", requireModule("portal"), portalRouter);
+  api.use("/reverse", requireModule("inversa"), reverseRouter);
+  api.use("/rs", requireModule("rs"), rsRouter);
   app.use("/api", api);
 
   app.use((_req, res) => res.status(404).json({ error: "Ruta no encontrada", code: "NOT_FOUND" }));

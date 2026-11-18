@@ -1,10 +1,12 @@
 import { createApp } from "./app";
 import { config } from "./config";
 import * as chain from "./blockchain/chain";
+import { startAutomation } from "./modules/automation";
 
 createApp().listen(config.port, () => {
   console.log(`Don Pimentón ERP API escuchando en http://localhost:${config.port}`);
-  if (process.env.AUTO_DEPLOY_CONTRACTS === "1") ensureContracts();
+  if (process.env.AUTO_DEPLOY_CONTRACTS !== "0") ensureContracts();
+  if (process.env.AUTOMATION !== "off") startAutomation().catch((e) => console.error("Automatización:", e.message));
 });
 
 /** Si la red local se reinició (contenedor nuevo), vuelve a desplegar los contratos. */
