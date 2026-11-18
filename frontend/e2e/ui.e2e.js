@@ -97,7 +97,7 @@ async function login(p, email) {
   const g = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   await login(g, "agricola@donpimenton.pe");
   const nav = await g.locator("aside nav").first().innerText();
-  assert(nav.includes("Campo y cosechas") && !nav.includes("Finanzas") && !nav.includes("Smart Contract"), "responsable agrícola solo ve sus módulos");
+  assert(nav.includes("Parcelas y cosechas") && !nav.includes("Finanzas") && !nav.includes("Smart Contract"), "responsable agrícola solo ve sus módulos");
   assert((await g.locator("header").innerText()).includes("Área Agrícola y Mantenimiento"), "los puestos se muestran por área, sin nombre de persona");
 
   console.log("E2E-6 Diseño de Gerencia: bienvenida, organigrama, marketing y Smart Contract");

@@ -153,3 +153,4 @@ Entorno: Node 22, PostgreSQL 16, Hardhat 2.22 (chainId 31337).
 | P10 | Cuenta no autorizada → `AccessControlUnauthorizedAccount` / `NotParty` |
 | P11 | Segunda liberación → `InvalidState` |
 | P12 | Documento modificado → hash distinto del registrado (`verifyLot` = false) |
+| `npm run test:e2e` | **23/23** (menú renombrado según el plan; sin desbordamiento horizontal en móvil) |

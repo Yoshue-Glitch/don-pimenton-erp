@@ -218,7 +218,7 @@ Prueba E2E de la interfaz (con API, web y Hardhat activos; **reinicia la demostr
 npm run test:e2e
 ```
 
-Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — **15/15 contratos** (incluye hitos de trazabilidad), **56/56 API** (38 previas + 18 de exportación: P1–P12, simulación de 20 pasos, permisos del agente y del comprador, pagos y QR). Las pruebas P1–P12 también se ejecutan en vivo desde `/pruebas`.
+Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — **15/15 contratos** (incluye hitos de trazabilidad), **56/56 API** (38 previas + 18 de exportación: P1–P12, simulación de 20 pasos, permisos del agente y del comprador, pagos y QR) y **23/23 verificaciones E2E** de la interfaz. Las pruebas P1–P12 también se ejecutan en vivo desde `/pruebas`.
 
 ---
 

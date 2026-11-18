@@ -74,7 +74,7 @@ export function ExportDashboard() {
           ))}
         </CardBody></Card>
       </div>
-      <div className="flex flex-wrap gap-2 text-[11px]"><Badge tone="green">REAL · {d.dataKinds.real}</Badge><Badge tone="blue">PROYECTADO · {d.dataKinds.projected}</Badge><Badge tone="gold">DEMO · {d.dataKinds.demo}</Badge></div>
+      <div className="flex flex-wrap gap-2 text-[11px]"><Badge tone="green" className="whitespace-normal leading-snug">REAL · {d.dataKinds.real}</Badge><Badge tone="blue" className="whitespace-normal leading-snug">PROYECTADO · {d.dataKinds.projected}</Badge><Badge tone="gold" className="whitespace-normal leading-snug">DEMO · {d.dataKinds.demo}</Badge></div>
     </div>
   );
 }
