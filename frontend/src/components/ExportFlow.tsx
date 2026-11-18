@@ -85,3 +85,12 @@ export function EventLog({ events, max = 40 }: { events: any[]; max?: number }) 
 
 export function Spin() { return <Loader2 className="h-4 w-4 animate-spin" />; }
 export { CheckCircle2, Circle };
+
+/** Texto de estado del acuerdo (evita mostrar "no está fondeado" cuando el pago ya se liberó). */
+export function agreementNote(on: any) {
+  if (!on?.exists) return null;
+  if (on.state === "EJECUTADO") return "Pago liberado al vendedor: el contrato verificó todas las condiciones";
+  if (on.state === "REEMBOLSADO") return "Fondos devueltos al comprador";
+  if (on.state === "CANCELADO") return "Acuerdo cancelado";
+  return on.canReleaseReason;
+}

@@ -34,6 +34,16 @@
 | `/api/reports` | PDF de trazabilidad, PDF de comprobante interno, Excel | |
 | `/api/admin` | Configuración, usuarios, roles/permisos, áreas, auditoría | |
 | `/api/demo` | Escenario integral, escenarios negativos, reinicio | |
+| `/api/trade` | Hub de exportación 4 oz: paletas SSCC, envasado, panel de laboratorio OP-8, pedidos, reserva R1, márgenes R8, documentos R2/R3 (PDF), aduanas R4–R6, cumplimiento R7, costos, KPI TI-14, dashboard | `trade.service.ts` |
+| `/api/export-demo` | Simulación de 20 pasos y pruebas P1–P12 | P1–P7 en transacción revertida |
+| `/api/assistant` | Chatbot y herramientas IA (Claude + web en dominios oficiales, o base local) | historial y validación humana |
+| `/api/payments` | Pagos Stripe / Mercado Pago / Yape / transferencia, verificación, webhooks firmados | el ERP no ve datos de tarjeta |
+| `/api/portal`, `/api/public` | Portal del comprador (alcance por cliente) y rutas públicas (catálogo, registro, QR, chat) | |
+| `/api/reverse`, `/api/rs` | Logística inversa (RMA, recall, economía circular) y plan de RS (31 proyectos, tablero) | |
+
+### Motor de automatización (`modules/automation.ts`)
+
+Ciclo cada 4 s sobre los embarques con piloto automático: ejecuta cada paso cuando se cumplen sus condiciones en el ERP (validación de calidad, reserva, confirmación, registro del lote y de los hitos en `PaprikaTraceability`, creación y aceptación del acuerdo, depósito, conformidad de calidad, paquete documental, DAM/ISF, despacho, viaje, entrega, confirmación del comprador, liberación y cierre contable). Los eventos se guardan en `AutomationEvent`; solo se marcan "on-chain" los que tienen una transacción confirmada. Calidad rechazada o plazo vencido → reembolso automático.
 
 ## Seguridad
 

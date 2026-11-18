@@ -262,7 +262,8 @@ export async function seedBaseData(db: PrismaClient) {
         k++;
       });
     }
-    return { camp, raw, lot, date, rawKg: sacks * 25 * 5, finalKg: sacks * 25, approve, sales };
+    // Balance de masa del plan: ≈ 8.075 kg de fruto fresco por 1 kg de páprika molida (rendimiento ≈ 12.4 %)
+    return { camp, raw, lot, date, rawKg: Math.round(sacks * 25 * (8.075 + ((sacks % 3) - 1) * 0.12)), finalKg: sacks * 25, approve, sales };
   });
   let opN = 0;
   for (const b of batches) {
@@ -271,13 +272,13 @@ export async function seedBaseData(db: PrismaClient) {
     await inTx((tx) => sendHarvestToProcessing(tx, harvest.id, uid));
     const start = new Date(harvestDate.getTime() + 86400000);
     const order = await inTx((tx) => createProductionOrder(tx, { sourceLotId: raw.id, initialWeightKg: b.rawKg, startDate: start, code: `OP-${start.getFullYear()}-${String(++opN).padStart(4, "0")}` }, uid));
-    const seq = [b.rawKg * 0.96, b.rawKg * 0.95, b.finalKg * 1.06, b.finalKg * 1.02, b.finalKg * 1.01, b.finalKg];
+    const seq = [b.rawKg * 0.93, b.rawKg * 0.925, b.finalKg * 1.09, b.finalKg * 1.02, b.finalKg * 1.01, b.finalKg]; // descarte 7 % en selección (OP-3)
     for (const [i, out] of seq.entries()) {
       const at = new Date(start.getTime() + (i + 1) * 86400000);
       await inTx((tx) => advanceStage(tx, order.id, { outputKg: Math.round(out), at, ...(i === 2 ? { temperatureC: 58 + (opN % 4), durationH: 28 + (opN % 5) } : {}) }, uid));
     }
     const end = new Date(start.getTime() + 8 * 86400000);
-    await inTx((tx) => completeOrder(tx, order.id, { finalWeightKg: b.finalKg, outputs: [{ quantityKg: b.finalKg, code: b.lot }], laborCost: Math.round(b.finalKg * 1.6), energyCost: Math.round(b.finalKg * 1.3), packagingCost: (b.finalKg / 25) * 2, otherCost: 150, expiryMonths: 18, at: end }, uid));
+    await inTx((tx) => completeOrder(tx, order.id, { finalWeightKg: b.finalKg, outputs: [{ quantityKg: b.finalKg, code: b.lot }], laborCost: Math.round(b.finalKg * 1.6), energyCost: Math.round(b.finalKg * 2.6), packagingCost: (b.finalKg / 25) * 2, otherCost: 150, expiryMonths: 18, at: end }, uid));
     const lot = await db.lot.findUniqueOrThrow({ where: { code: b.lot } });
     const qcAt = new Date(end.getTime() + 86400000);
     const insp = await inTx((tx) => createInspection(tx, b.approve

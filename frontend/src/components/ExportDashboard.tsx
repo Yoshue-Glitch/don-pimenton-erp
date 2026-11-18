@@ -34,7 +34,7 @@ export function ExportDashboard() {
           <Link href="/simulacion" className="inline-flex shrink-0 items-center gap-3 rounded-xl bg-white px-7 py-4 text-base font-extrabold text-forest shadow-xl transition hover:-translate-y-0.5 hover:bg-paprika-50"><Rocket className="h-6 w-6 text-paprika" />INICIAR SIMULACIÓN DE EXPORTACIÓN</Link>
         </div>
       </section>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
         <Kpi tone="green" icon={<Factory />} label="Producción total" value={`${num(c.productionKg)} kg`} hint="Producto terminado" />
         <Kpi tone="amber" icon={<Percent />} label="Rendimiento fruto-producto" value={c.yieldPct === null ? "—" : `${c.yieldPct} %`} hint="Meta ≥ 12.4 %" />
         <Kpi tone="blue" icon={<Layers />} label="Lotes en procesamiento" value={num(c.lotsProcessing)} hint="Órdenes en proceso" />

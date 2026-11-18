@@ -11,7 +11,7 @@ import { Table } from "@/components/DataTable";
 import { FormDialog } from "@/components/FormDialog";
 import { Can, useAuth, useToast } from "@/components/providers";
 import { ShipMap } from "@/components/ShipMap";
-import { FlowPipeline, EventLog } from "@/components/ExportFlow";
+import { FlowPipeline, EventLog, agreementNote } from "@/components/ExportFlow";
 
 const usd = (v: any) => money(v, "USD");
 
@@ -45,7 +45,7 @@ export default function ShipmentDetail() {
           <Button size="sm" variant="outline" onClick={() => download(`/trade/shipments/${s.id}/docs/expediente.pdf`, `expediente-${s.code}.pdf`)}><Download className="h-4 w-4" />Expediente PDF</Button>
         </>} />
       <Card>
-        <CardHeader title="Smart contract automatizado" subtitle={s.agreement ? `${s.agreement.code} · ${s.onchain?.amountEth ?? "—"} ETH de prueba ≙ S/ ${Number(s.agreement.referencePen).toFixed(2)} · ${s.onchain?.canReleaseReason ?? ""}` : "Se crea automáticamente al confirmarse el pedido"} icon={<ShieldCheck className="h-5 w-5" />} actions={s.agreement && <StatusBadge status={s.agreement.status} />} />
+        <CardHeader title="Smart contract automatizado" subtitle={s.agreement ? `${s.agreement.code} · ${s.onchain?.amountEth ?? "—"} ETH de prueba ≙ S/ ${Number(s.agreement.referencePen).toFixed(2)} · ${agreementNote(s.onchain) ?? ""}` : "Se crea automáticamente al confirmarse el pedido"} icon={<ShieldCheck className="h-5 w-5" />} actions={s.agreement && <StatusBadge status={s.agreement.status} />} />
         <CardBody><FlowPipeline s={s} /></CardBody>
       </Card>
       <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">

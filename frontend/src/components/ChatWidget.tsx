@@ -22,7 +22,7 @@ export function ChatWidget({ endpoint = "/assistant/ask", title = "Pimentín · 
   const [busy, setBusy] = React.useState(false);
   const [status, setStatus] = React.useState<any>(null);
   const end = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => { if (open && !status) api("/assistant/status").then(setStatus).catch(() => setStatus({ mode: "LOCAL" })); }, [open, status]);
+  React.useEffect(() => { if (open && !status) api("/public/assistant-status").then(setStatus).catch(() => setStatus({ mode: "LOCAL" })); }, [open, status]);
   React.useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
   const sugg = suggestions ?? ["¿Qué incluye una paleta y cuánto cuesta?", "¿Qué requisitos FDA necesito para importar?", "¿Cómo funciona el pago con smart contract?", "¿Dónde está mi pedido?"];
   const send = async (text: string) => {

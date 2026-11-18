@@ -9,7 +9,7 @@ import { cn, short, dateTime, money } from "@/lib/utils";
 import { Card, CardHeader, CardBody, StatusBadge, Badge, Button, Select, Notice, KeyValue, Loading } from "@/components/ui";
 import { Can, useToast } from "@/components/providers";
 import { ShipMap } from "@/components/ShipMap";
-import { FlowPipeline, EventLog } from "@/components/ExportFlow";
+import { FlowPipeline, EventLog, agreementNote } from "@/components/ExportFlow";
 import { FormDialog } from "@/components/FormDialog";
 
 export function AutoContracts() {
@@ -47,7 +47,7 @@ export function AutoContracts() {
       </CardBody></Card>
       {s && <>
         <Card>
-          <CardHeader title={s.agreement ? `${s.agreement.code} · PaprikaTradeAgreement` : "Acuerdo por crear"} subtitle={on?.exists ? `${on.amountEth} ETH de prueba ≙ S/ ${on.referencePen} · plazo ${dateTime(on.deadline)} · ${on.canReleaseReason}` : "El motor lo crea al confirmarse el pedido"} icon={<ShieldCheck className="h-5 w-5" />}
+          <CardHeader title={s.agreement ? `${s.agreement.code} · PaprikaTradeAgreement` : "Acuerdo por crear"} subtitle={on?.exists ? `${on.amountEth} ETH de prueba ≙ S/ ${on.referencePen} · plazo ${dateTime(on.deadline)} · ${agreementNote(on)}` : "El motor lo crea al confirmarse el pedido"} icon={<ShieldCheck className="h-5 w-5" />}
             actions={<>{s.agreement && <StatusBadge status={s.agreement.status} />}<Link href={`/comex/${s.id}`} className="text-xs font-semibold text-bluex hover:underline">Ver embarque →</Link></>} />
           <CardBody><FlowPipeline s={s} /></CardBody>
         </Card>

@@ -124,3 +124,32 @@ E2E-7 Responsive y modo oscuro
 ## Cómo reproducir
 
 Con PostgreSQL y `npm run chain` activos, ejecute `npm run contracts:test` y `npm run test:api`. Para la E2E, además `npm run api` y `npm run web`, y luego `npm run test:e2e`.
+
+---
+
+## Exportación 4 oz, smart contract automatizado y portal (18 nov 2026)
+
+Entorno: Node 22, PostgreSQL 16, Hardhat 2.22 (chainId 31337).
+
+| Suite | Resultado |
+|---|---|
+| `npm run contracts:test` | **15/15** (nuevo: hitos verificables `recordMilestone`, duplicados y actor no autorizado) |
+| `npm run test:api` (previas) | **38/38** |
+| `backend/tests/export.test.ts` | **18/18**: P1–P12, P1–P7 sin dejar datos, simulación de 20 pasos con pago liberado on-chain y PDF, agente sin costos (403 en finanzas), comprador con pago de prueba marcado `livemode=false`, tarjeta sin pasarela → 503, QR público con hashes coincidentes |
+| Flujo automatizado del portal (manual) | Pedido → validación R1 → reserva → confirmación → registro del lote y 6 hitos → acuerdo creado/aceptado → depósito → calidad on-chain → documentos R2/R3 → DAM/ISF → despacho → viaje (mapa) → arribo → entrega on-chain → confirmación del comprador → liberación → CERRADO, OTIF sí, **sin intervención** |
+| `next build` | OK (52 rutas) |
+
+| Prueba | Evidencia principal |
+|---|---|
+| P1 | `LOTE-2026-11-NNN` hereda parcela PAR-002 y fecha de cosecha |
+| P2 | Humedad 12.6 %, B1 7.5, totales 11.2 → lote CUARENTENA (retenido), paleta RETENIDO, reserva bloqueada por R1 |
+| P3 | 1 paleta FCA → 96 cajas y 2,304 frascos reservados (SSCC) |
+| P4 | Neto 250 kg ≠ 260.352 kg y bruto 560 ≠ 580.072 kg → paquete RECHAZADO |
+| P5 | DAM numerada hace 22 días → semáforo ÁMBAR + alerta R4 |
+| P6 | DIGESA vencido → pedido bloqueado por R7 |
+| P7 | Agente de aduana: sin `costs.read`/`finance.read`; margen y costos ocultos |
+| P8 | Calidad + entrega + confirmación → `releasePayment` confirmado (antes de la entrega, rechazado) |
+| P9 | Calidad rechazada → liberación revertida y reembolso al comprador |
+| P10 | Cuenta no autorizada → `AccessControlUnauthorizedAccount` / `NotParty` |
+| P11 | Segunda liberación → `InvalidState` |
+| P12 | Documento modificado → hash distinto del registrado (`verifyLot` = false) |

@@ -105,7 +105,7 @@ export function ShipMap({ status, progress = 0, vessel, code, className, height 
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-line bg-[#0f2a3a]", className)} style={{ height }}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label={`Mapa de la ruta del embarque ${code ?? ""}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Mapa de la ruta del embarque ${code ?? ""}`}>
         <defs>
           <radialGradient id="sea" cx="45%" cy="40%" r="80%"><stop offset="0%" stopColor="#1d5b78" /><stop offset="100%" stopColor="#0b2233" /></radialGradient>
           <linearGradient id="routeDone" x1="0" x2="1"><stop offset="0%" stopColor="#D9A441" /><stop offset="100%" stopColor="#F2C9C0" /></linearGradient>

@@ -13,6 +13,31 @@ services:
         generateValue: true
       - key: SECURE_COOKIES
         value: "1"
+      - key: PUBLIC_BASE_URL           # URL pública (QR de trazabilidad y retorno de pasarelas)
+        value: https://don-pimenton-erp.onrender.com
+      # --- Opcionales: se completan en el panel de Render (nunca en el repositorio) ---
+      - key: ANTHROPIC_API_KEY         # chatbot con Claude + búsqueda web en fuentes oficiales
+        sync: false
+      - key: STRIPE_SECRET_KEY         # tarjetas en USD (Stripe Checkout)
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: MP_ACCESS_TOKEN           # tarjetas y Yape en PEN (Mercado Pago Checkout Pro)
+        sync: false
+      - key: YAPE_NUMBER               # Yape directo del negocio
+        sync: false
+      - key: YAPE_HOLDER
+        sync: false
+      - key: BANK_NAME
+        sync: false
+      - key: BANK_HOLDER
+        sync: false
+      - key: BANK_ACCOUNT
+        sync: false
+      - key: BANK_CCI
+        sync: false
+      - key: BANK_SWIFT
+        sync: false
 databases:
   - name: don-pimenton-db
     plan: free

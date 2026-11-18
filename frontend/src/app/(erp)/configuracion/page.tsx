@@ -4,6 +4,7 @@ import { Settings, Save, UserPlus, KeyRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { dateTime, cn } from "@/lib/utils";
+import { MfaCard } from "@/components/MfaCard";
 import { Card, CardHeader, CardBody, PageHeader, Button, Tabs, Badge, Notice, Field, Input, Select, Loading, StatusBadge } from "@/components/ui";
 import { ServerTable, LocalTable } from "@/components/DataTable";
 import { FormDialog } from "@/components/FormDialog";
@@ -27,6 +28,7 @@ export default function Configuracion() {
   return (
     <div className="space-y-4">
       <PageHeader area="Sistema" title="Configuración" subtitle="Módulos, parámetros, usuarios, permisos y auditoría" icon={<Settings className="h-5 w-5" />} />
+      <MfaCard />
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {tab === "modulos" && <Modules onSaved={refresh} />}
       {tab === "parametros" && <Params />}

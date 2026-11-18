@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 // ------------------------------------------------------------------ Auth
-export interface Me { id: number; email: string; name: string; role: string; roleName: string; permissions: string[] }
+export interface Me { id: number; email: string; name: string; role: string; roleName: string; permissions: string[]; customerId?: number | null; mfa?: boolean }
 interface AuthState { user: Me | null; modules: string[]; loading: boolean; can: (p: string) => boolean; refresh: () => Promise<void>; logout: () => Promise<void> }
 const AuthCtx = React.createContext<AuthState>({ user: null, modules: [], loading: true, can: () => false, refresh: async () => {}, logout: async () => {} });
 export const useAuth = () => React.useContext(AuthCtx);

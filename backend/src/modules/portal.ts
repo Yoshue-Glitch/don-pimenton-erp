@@ -18,7 +18,7 @@ import * as A from "./automation";
 import * as chain from "../blockchain/chain";
 import { shipmentPdf, PORTAL_DOCS, DOC_TYPES, traceUrl } from "./exportDocs";
 import { startPayment, refreshPayment, submitManual, providers, accounts } from "./payments";
-import { ask } from "./assistant";
+import { ask, aiEnabled } from "./assistant";
 import { stagePayloads } from "./automation";
 
 export const portalRouter = Router();
@@ -54,6 +54,7 @@ async function catalog() {
 }
 
 // ------------------------------------------------------------------ público
+publicRouter.get("/assistant-status", (_req, res) => res.json({ mode: aiEnabled() ? "CLAUDE" : "LOCAL", enabled: aiEnabled() }));
 publicRouter.get("/catalog", ah(async (_req, res) => res.json(await catalog())));
 
 /** Consulta pública del QR: historia de origen verificable (sin datos personales ni comerciales). */

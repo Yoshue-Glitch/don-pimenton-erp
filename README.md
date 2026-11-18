@@ -2,7 +2,13 @@
 
 > *"Del campo al mercado, con calidad y trazabilidad"*
 
-Prototipo **funcional** de ERP para Don Pimentón (microempresa agroindustrial familiar de Arequipa, Perú): cultivo, deshidratado, molienda y venta de páprika en sacos de 25 kg. Integra agricultura → producción → calidad → inventarios → ventas → logística → finanzas, y un módulo de **Smart Contracts reales** (Solidity, red Ethereum local Hardhat) para trazabilidad de lotes y pago condicionado de prueba.
+Prototipo **funcional** de ERP para Don Pimentón (empresa agroindustrial familiar de Arequipa, Perú; producción en Caravelí): cultivo, deshidratado, molienda y venta de páprika. Cubre la **operación real actual** (sacos de 25 kg en La Feria Los Incas) y la **exportación proyectada** de páprika molida en **frascos de 4 oz (113 g) a Estados Unidos** (Fases 1–4 del Plan de Negocios 2026), con:
+
+- **Hub de exportación** (tablas TI-9 a TI-15 y OP-1 a OP-9): envasado 24 frascos/caja · 96 cajas/paleta · 2,304 frascos ≈ 260.4 kg; GTIN, GTIN-14, SSCC y QR; reglas **R1–R8** automatizadas; COA de exportación (OP-8); documentos (factura, packing list, ISF, Prior Notice, origen APC…); DAM con semáforo; cumplimiento FDA/SUNAT; costos por frasco y margen; KPI TI-14.
+- **Smart Contracts automatizados** (Solidity + Hardhat + ethers.js): un motor ejecuta solo cada tarea del acuerdo (crear, aceptar, depositar, calidad, despacho, entrega, confirmación, liberación) y **un mapa animado con geografía real** muestra el barco Callao → Canal de Panamá → Port Everglades.
+- **Portal del comprador** vinculado al ERP y al contrato: catálogo, cotizador, pedido, **pagos con tarjeta (Stripe / Mercado Pago), Yape y transferencia**, seguimiento en vivo, documentos, confirmación de recepción, reclamos y disputas, muestras, registro de compradores.
+- **Chatbot “Pimentín”** (ERP y portal) con Claude y búsqueda web limitada a fuentes oficiales, o con base de conocimiento local verificable si no hay clave.
+- **Responsabilidad Social** (31 proyectos, tablero GRI con semáforo) y **Logística inversa** (RMA, recall < 4 h, economía circular).
 
 Moneda principal: **PEN (S/)**; operaciones internacionales en **USD** con tipo de cambio registrado. Interfaz en español.
 
@@ -122,6 +128,10 @@ Solo la Gerencia General tiene nombre de persona; el resto de cuentas se identif
 | Se muestra como | Rol | Usuario |
 |---|---|---|
 | **Martha Torres** · Gerencia General | Acceso total | admin@donpimenton.pe |
+| Departamento de Exportaciones · Logística y documentación | Documentos, DAM | logistica@donpimenton.pe |
+| Agencia de Aduanas (externo) | Solo sus embarques, sin costos (P7) | agente@aduanas-demo.pe |
+| Importador Demo USA · Compras | **Portal del comprador** | compras@importadordemo-usa.com |
+| Food Broker (externo) | Portal, solo consulta | broker@foodbroker-demo.com |
 | Administración del sistema | Aprobaciones y arbitraje | gerencia@donpimenton.pe |
 | Área Agrícola y Mantenimiento | Agrícola | agricola@donpimenton.pe |
 | Procesamiento y Calidad · Producción | Producción | produccion@donpimenton.pe |
@@ -132,11 +142,47 @@ Solo la Gerencia General tiene nombre de persona; el resto de cuentas se identif
 | Departamento de Exportaciones | Exportaciones y marketing | exportaciones@donpimenton.pe |
 | Auditoría interna | Solo lectura | auditor@donpimenton.pe |
 
-Cada rol ve solo sus módulos y acciones; la Gerencia General edita la matriz de permisos en *Configuración → Roles y permisos*. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
+Doble factor (TOTP) disponible para roles críticos en *Usuarios y seguridad*. Cada rol ve solo sus módulos y acciones; la Gerencia General edita la matriz de permisos en *Configuración → Roles y permisos*. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
 
 ---
 
-## Ejecutar el escenario integral
+## Exportación de punta a punta (nuevo)
+
+| Ruta | Qué hace |
+|---|---|
+| `/simulacion` | **INICIAR SIMULACIÓN DE EXPORTACIÓN**: 20 pasos (parcela → cosecha → lote → proceso → balance de masa → análisis → COA → 2,304 frascos → 96 cajas → paleta → pedido FCA → reserva → documentos → cumplimiento → smart contract → depósito → DAM y despacho → entrega → pago liberado → dashboard) y **PDF final**. Reiniciable: cada corrida usa códigos nuevos. |
+| `/comex`, `/comex/[id]` | Pedidos y paletas: cotización automática (margen R8), envasado, reserva R1, piloto automático, pipeline del contrato, mapa, bitácora, documentos R2/R3, DAM, cumplimiento, costos y pagos |
+| `/calidad-exportacion` | Panel OP-8 (ASTA, humedad, aw, Salmonella, E. coli, mohos, aflatoxinas, OTA, colorantes, materia extraña, metales, peso neto), límites configurables, retención automática y COA de demostración |
+| `/documentos`, `/aduanas`, `/cumplimiento` | Paquete documental en PDF + comparación de documentos, semáforo DAM R4/R5 y tarea ISF R6, registros FDA/SUNAT con bloqueo R7 |
+| `/smart-contract` | Pestaña **Contratos automatizados · mapa en vivo**: pipeline de 9 pasos, condiciones verificadas por el contrato, hitos on-chain y eventos (se distingue tx confirmada de actualización del ERP) |
+| `/pagos`, `/logistica-inversa`, `/responsabilidad-social`, `/kpi`, `/asistente`, `/pruebas` | Cobranza y verificación, RMA/recall/economía circular, plan de RS, KPI TI-14 exportables, IA con historial y validación humana, **pruebas P1–P12 en vivo** |
+| `/portal` | Vista del comprador (ES/EN): catálogo, cotizador, pedido, pago, seguimiento con mapa, documentos, confirmación, reclamos, muestras, registro |
+| `/trazabilidad/[lote]` | Consulta pública del QR: historia de origen y verificación de hashes contra la blockchain |
+
+### Pagos reales
+
+El ERP **nunca recibe datos de tarjeta**: el comprador paga en la página certificada PCI de la pasarela. Para cobrar de verdad, configure en el servidor (o en Render → *Environment*), nunca en el repositorio:
+
+| Medio | Variables | Notas |
+|---|---|---|
+| Tarjeta en USD | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Webhook: `POST /api/payments/webhooks/stripe`. Con `sk_test_…` los cobros son de prueba |
+| Tarjeta / Yape en PEN | `MP_ACCESS_TOKEN` | Mercado Pago Checkout Pro; webhook `/api/payments/webhooks/mercadopago` (se verifica consultando la API) |
+| Yape directo | `YAPE_NUMBER`, `YAPE_HOLDER`, `YAPE_QR_URL` | El comprador registra el n.° de operación y la constancia; Finanzas verifica en `/pagos` |
+| Transferencia | `BANK_NAME`, `BANK_HOLDER`, `BANK_ACCOUNT`, `BANK_CCI`, `BANK_SWIFT` | Igual que Yape; se rechazan n.° de operación duplicados |
+
+También pueden cargarse desde *Pagos y cobranza → Configurar Yape y cuenta bancaria*. Sin configuración, el portal ofrece un **pago de prueba** marcado como no real (`PAYMENTS_ALLOW_TEST=false` lo oculta). Al aprobarse un pago, el ERP registra la cobranza y el motor fondea el escrow del contrato (fondos de prueba de la red local: espejo del pago real).
+
+### Asistente de IA
+
+Con `ANTHROPIC_API_KEY` el chatbot usa Claude (`claude-opus-5-5`) con búsqueda web restringida a dominios oficiales (FDA, CBP, eCFR, USITC, SUNAT, SENASA, DIGESA, PROMPERÚ, MINCETUR, GS1, ICC…), cita sus fuentes y registra cada consulta. Sin clave responde solo desde la base de conocimiento curada del plan y los datos vivos del ERP, en modo demostración y sin inventar resultados.
+
+### Motor de automatización
+
+Corre cada 4 s en la API (`AUTOMATION=off` lo desactiva). En la demo el viaje dura 150 s y la confirmación del comprador puede hacerse con la billetera demo; ambos se ajustan en *Smart Contract → Automatización* (en producción: confirmación solo desde el portal y depósito solo con pago aprobado).
+
+---
+
+## Ejecutar el escenario integral (venta nacional en sacos)
 
 1. Ingrese como `admin@donpimenton.pe` (o `gerencia@`).
 2. Menú **Demostración guiada** → *Reiniciar demostración* (escriba `REINICIAR`) para partir de cero.
@@ -172,7 +218,7 @@ Prueba E2E de la interfaz (con API, web y Hardhat activos; **reinicia la demostr
 npm run test:e2e
 ```
 
-Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — 14/14 contratos, 38/38 API, 23/23 verificaciones E2E.
+Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUEBAS.md) — **15/15 contratos** (incluye hitos de trazabilidad), **56/56 API** (38 previas + 18 de exportación: P1–P12, simulación de 20 pasos, permisos del agente y del comprador, pagos y QR). Las pruebas P1–P12 también se ejecutan en vivo desde `/pruebas`.
 
 ---
 
@@ -189,11 +235,19 @@ Resultados de la última ejecución: [docs/REPORTE_PRUEBAS.md](docs/REPORTE_PRUE
 - Contabilidad de gestión, no contabilidad legal (sin plan contable, asientos ni libros electrónicos).
 - Las billeteras blockchain son las cuentas públicas deterministas de Hardhat custodiadas por la API: válido solo para la red local. Una red real exigiría billeteras de cada actor (p. ej. firma en el navegador) y auditoría de seguridad de los contratos.
 - Un acuerdo inteligente cubre un lote completo de un pedido (simplificación de la demo).
+- El ERP no transmite a SUNAT, VUCE, FDA ni CBP: prepara los datos (DAM, ISF, Prior Notice) que transmiten el agente de aduana, el importador o su broker. Los números DAM/B/L de la automatización son de demostración.
+- El COA y los documentos de exportación son de demostración (no oficiales). Límites de calidad y plazos aduaneros son referencias del plan, configurables y sujetos a validación normativa.
+- La distribución del presupuesto de RS por proyecto es estimada; los totales por plan coinciden con el documento.
 - No se incluyen pruebas de carga ni pentesting.
 - El costo laboral de RR.HH. es la remuneración bruta registrada, sin cargas sociales.
 
 ## Capturas
 
-![Dashboard](docs/capturas/dashboard.png)
+![Dashboard de exportación](docs/capturas/dashboard-exportacion.png)
+![Smart contract automatizado con mapa en vivo](docs/capturas/smart-contract-mapa.png)
+![Portal del comprador](docs/capturas/portal-inicio.png)
+![Pedido en el portal](docs/capturas/portal-pedido.png)
+![Pruebas P1–P12](docs/capturas/pruebas-p1-p12.png)
+![Responsabilidad social](docs/capturas/responsabilidad-social.png)
 
 Más capturas y un PDF de trazabilidad de ejemplo en [`docs/capturas`](docs/capturas).
