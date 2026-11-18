@@ -10,6 +10,7 @@ import { useApi } from "@/lib/hooks";
 import { money, kg, num, date, dateTime, cn } from "@/lib/utils";
 import { Card, CardHeader, CardBody, Kpi, Trend, Loading, ErrorBox, Badge, Button, Empty, StatusBadge } from "@/components/ui";
 import { useAuth } from "@/components/providers";
+import { ExportDashboard } from "@/components/ExportDashboard";
 
 const C = { red: "#A52A2A", green: "#2F6B45", forest: "#1C3F2B", gold: "#D9A441", blue: "#2B6CB0", salmon: "#E28A7E", sage: "#9DBFA6", gray: "#6B7280", amber: "#B26B00" };
 const PIE = [C.red, C.green, C.gold, C.blue, C.salmon, C.sage, C.gray];
@@ -86,6 +87,10 @@ export default function Dashboard() {
         <div className="relative z-[1] text-left font-display text-[26px] italic leading-[1.1] text-paprika md:text-right">Pimentón<br />Arequipeño</div>
       </div>
 
+      {/* Exportación: dashboard ejecutivo (sección 4) */}
+      <ExportDashboard />
+
+      <p className="pt-2 text-[13px] font-bold uppercase tracking-[.12em] text-muted">Operación actual · venta nacional y finanzas</p>
       {/* Indicadores gerenciales */}
       <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
         <Kpi tone="green" icon={<TrendingUp />} label="Ingresos del mes" value={moneyK(cur.ingresos)} hint="Cobros, ventas y otros ingresos" trend={<Trend value={o.trends.ingresos} />} onClick={() => router.push("/finanzas")} />

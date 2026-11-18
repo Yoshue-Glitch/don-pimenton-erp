@@ -31,3 +31,13 @@ body { @apply bg-bg text-fg antialiased; font-size: 14px; }
 .recharts-tooltip-wrapper .recharts-default-tooltip { background: rgb(var(--card)) !important; border: 1px solid rgb(var(--line)) !important; border-radius: 10px; }
 .nav-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
 @media print { aside, header, .no-print { display: none !important; } }
+
+/* Animaciones del mapa de trazabilidad y del pipeline del smart contract */
+@keyframes dp-dash { to { stroke-dashoffset: -140; } }
+.dp-dash { animation: dp-dash 6s linear infinite; }
+@keyframes dp-ping { 0% { transform: scale(.6); opacity: .7; } 100% { transform: scale(2.2); opacity: 0; } }
+.dp-ping { transform-box: fill-box; transform-origin: center; animation: dp-ping 1.8s ease-out infinite; }
+@keyframes dp-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+.dp-bob { animation: dp-bob 2.2s ease-in-out infinite; }
+@keyframes dp-flow { 0% { background-position: 0 0; } 100% { background-position: 40px 0; } }
+.dp-flow { background-image: repeating-linear-gradient(90deg, rgba(217,164,65,.9) 0 10px, transparent 10px 20px); background-size: 40px 4px; animation: dp-flow 1s linear infinite; }

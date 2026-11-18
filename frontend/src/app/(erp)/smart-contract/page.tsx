@@ -14,6 +14,7 @@ import { useAuth, useToast } from "@/components/providers";
 import { PHASES, SMART_LINKS, DUA_PROCESS, DUA_CHANNELS, AGENT_DOCS, COMMON_ERRORS, TIPS, RESOURCES, EXPORTA_FACIL_MAX_USD, type StepCheck } from "./exportGuide";
 import { buildModels, type DocModel } from "./docModels";
 import { DocPreview } from "./DocPreview";
+import { AutoContracts } from "./AutoContracts";
 import { modelToDocx, sha256Hex, docxFile } from "./docxExport";
 
 const usd = (v: number) => `US$ ${Math.round(v).toLocaleString("en-US")}`;
@@ -74,7 +75,7 @@ const STATE_UI: Record<State, { icon: any; cls: string; label: string }> = {
 };
 
 export default function SmartContractPage() {
-  const [tab, setTab] = React.useState<"resumen" | "ruta" | "modelos" | "aduana">("resumen");
+  const [tab, setTab] = React.useState<"auto" | "resumen" | "ruta" | "modelos" | "aduana">("auto");
   const exp = useApi<any>("/exports/orders?pageSize=50");
   const orders = useApi<any>("/sales/orders?status=RESERVADO&pageSize=50");
   const status = useApi<any>("/blockchain/status");
@@ -93,22 +94,23 @@ export default function SmartContractPage() {
         </svg>
         <span className="text-[11px] font-bold uppercase tracking-[.26em] text-[#F2C9C0]">Departamento de Exportaciones · Trazabilidad</span>
         <h1 className="my-4 max-w-[17ch] font-display text-[clamp(30px,4.6vw,50px)] font-bold leading-[1.08]">Exporta con <i className="font-medium text-[#F2B8AC]">contratos inteligentes</i></h1>
-        <p className="mb-8 max-w-[600px] text-[15.5px] leading-relaxed text-white/85">Cada exportación sigue los 6 pasos oficiales — preparación, formalización, contacto comercial, negociación, logística y cobro — y sus documentos alimentan el contrato inteligente: el pago solo se libera cuando la calidad, la entrega y la confirmación del comprador quedan verificadas.</p>
+        <p className="mb-8 max-w-[600px] text-[15.5px] leading-relaxed text-white/85">Todas las tareas del acuerdo se ejecutan solas: el motor crea el contrato, deposita, registra calidad, despacho y entrega, y libera el pago cuando el contrato verifica las condiciones. Cada exportación sigue los 6 pasos oficiales — preparación, formalización, contacto comercial, negociación, logística y cobro — y sus documentos alimentan el contrato inteligente: el pago solo se libera cuando la calidad, la entrega y la confirmación del comprador quedan verificadas.</p>
         <div className="flex flex-wrap gap-3">
           <Link href="/blockchain" className="inline-flex items-center gap-3 rounded-xl bg-white px-8 py-[18px] text-base font-extrabold text-forest shadow-[0_18px_40px_-14px_rgba(0,0,0,.5)] transition-all hover:-translate-y-0.5 hover:bg-paprika-50">
             <FileSignature className="h-[22px] w-[22px] text-paprika" />Smart Contract<ArrowUpRight className="h-[22px] w-[22px] text-paprika" />
           </Link>
           <button onClick={() => setTab("ruta")} className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-[18px] font-bold text-white hover:bg-white/10"><Route className="h-5 w-5" />Ruta de exportación</button>
-          <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-[18px] font-bold text-white hover:bg-white/10"><PlayCircle className="h-5 w-5" />Ver la demostración</Link>
+          <Link href="/simulacion" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-[18px] font-bold text-white hover:bg-white/10"><PlayCircle className="h-5 w-5" />Simulación de exportación</Link>
         </div>
         <p className="relative mt-6 flex items-center gap-2 text-xs text-white/60"><Link2 className="h-3.5 w-3.5" />
           {s ? (s.connected ? `Red local conectada · chainId ${s.chainId} · bloque #${s.blockNumber} · fondos de prueba sin valor real` : "Red blockchain local no disponible en este momento") : "Consultando la red local…"}
         </p>
       </section>
 
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: "resumen", label: "Resumen" }, { id: "ruta", label: "Ruta de exportación (18 pasos)" }, { id: "modelos", label: "Modelos de documentos y contrato" }, { id: "aduana", label: "DUA, errores y recursos" }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: "auto", label: "Contratos automatizados · mapa en vivo" }, { id: "resumen", label: "Resumen" }, { id: "ruta", label: "Ruta de exportación (18 pasos)" }, { id: "modelos", label: "Modelos de documentos y contrato" }, { id: "aduana", label: "DUA, errores y recursos" }]} />
 
-      {tab !== "resumen" && (
+      {tab === "auto" && <AutoContracts />}
+      {!["resumen", "auto"].includes(tab) && (
         <Card><CardBody className="flex flex-wrap items-end gap-4">
           <Field label="Orden internacional" className="min-w-[260px] flex-1 sm:max-w-md">
             <Select value={sel} onChange={(e) => setSel(e.target.value)}>
@@ -121,8 +123,8 @@ export default function SmartContractPage() {
       )}
 
       {tab === "resumen" && <Summary pendingExports={pendingExports} reserved={reserved} />}
-      {tab !== "resumen" && sel && <OrderTabs id={sel} tab={tab} />}
-      {tab !== "resumen" && !sel && !exp.loading && <Empty title="No hay órdenes internacionales" hint="Registre una orden en Exportaciones para generar su ruta y documentos." />}
+      {!["resumen", "auto"].includes(tab) && sel && <OrderTabs id={sel} tab={tab as any} />}
+      {!["resumen", "auto"].includes(tab) && !sel && !exp.loading && <Empty title="No hay órdenes internacionales" hint="Registre una orden en Exportaciones para generar su ruta y documentos." />}
     </div>
   );
 }

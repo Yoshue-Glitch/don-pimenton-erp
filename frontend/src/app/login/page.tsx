@@ -7,7 +7,7 @@ import { Button, Input, Field, ErrorBox } from "@/components/ui";
 import { PepperLogo } from "@/components/Shell";
 
 const DEMO = [
-  ["admin@donpimenton.pe", "Martha Torres · Gerencia General"], ["gerencia@donpimenton.pe", "Administración del sistema"], ["agricola@donpimenton.pe", "Área Agrícola"],
+  ["admin@donpimenton.pe", "Martha Torres · Gerencia General"], ["logistica@donpimenton.pe", "Exportaciones · Logística y documentación"], ["agente@aduanas-demo.pe", "Agente de aduana (externo)"], ["compras@importadordemo-usa.com", "Comprador · portal"], ["broker@foodbroker-demo.com", "Broker · portal (consulta)"], ["gerencia@donpimenton.pe", "Administración del sistema"], ["agricola@donpimenton.pe", "Área Agrícola"],
   ["produccion@donpimenton.pe", "Procesamiento · Producción"], ["calidad@donpimenton.pe", "Procesamiento · Calidad"], ["almacen@donpimenton.pe", "Comercial · Almacén"],
   ["comercial@donpimenton.pe", "Comercial · Ventas"], ["finanzas@donpimenton.pe", "Administración y Finanzas"], ["exportaciones@donpimenton.pe", "Exportaciones"], ["auditor@donpimenton.pe", "Auditoría (solo lectura)"],
 ];
@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [otp, setOtp] = React.useState("");
+  const [needOtp, setNeedOtp] = React.useState(false);
   const [hint, setHint] = React.useState<{ showPassword: boolean; password: string | null } | null>(null);
   React.useEffect(() => { api("/auth/demo-info").then(setHint).catch(() => setHint(null)); }, []);
 
@@ -25,9 +27,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError(null);
     try {
-      await api("/auth/login", { body: { email, password } });
-      router.replace("/");
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+      const r = await api<any>("/auth/login", { body: { email, password, ...(needOtp ? { otp } : {}) } });
+      router.replace(["COMPRADOR", "BROKER"].includes(r.user?.role) ? "/portal" : "/");
+    } catch (err: any) {
+      if (err.code === "MFA_REQUIRED" || err.code === "MFA_INVALID") setNeedOtp(true);
+      setError(err.message);
+    } finally { setLoading(false); }
   };
 
   return (
@@ -67,7 +72,9 @@ export default function LoginPage() {
             <Field label="Contraseña">
               <div className="relative"><Lock className="absolute left-3 top-3 h-4 w-4 text-muted" /><Input className="h-10 pl-9" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></div>
             </Field>
+            {needOtp && <Field label="Código de doble factor (6 dígitos)"><Input className="h-10 tracking-[.4em]" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} autoComplete="one-time-code" required /></Field>}
             <Button type="submit" className="w-full" size="lg" loading={loading}>Ingresar</Button>
+            <a href="/portal" className="block text-center text-xs font-semibold text-bluex hover:underline">¿Es comprador o importador? Ingrese al portal del comprador →</a>
           </form>
           <div className="mt-8 rounded-2xl border border-line bg-card p-4 shadow-card">
             <p className="text-xs font-bold text-fg">Usuarios de demostración</p>

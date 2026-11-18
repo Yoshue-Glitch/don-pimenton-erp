@@ -54,6 +54,9 @@ export const CardBody = ({ className, ...p }: React.HTMLAttributes<HTMLDivElemen
 
 // ------------------------------------------------------------------ Badge de estado
 const STATUS: Record<string, string> = {
+  CALIDAD_VALIDADA: "blue", ARRIBADO: "blue", CERRADO: "green", COTIZACION: "amber", PEDIDO: "blue", RETENIDO: "orange", DISPONIBLE: "green", CUMPLIDO: "green",
+  POR_VENCER: "amber", VENCIDO: "red", REQUIERE_VALIDACION: "amber", NO_APLICABLE: "slate", EN_VERIFICACION: "blue", EXPIRADO: "slate", ABIERTO: "amber",
+  VERDE: "green", AMBAR: "amber", ROJO: "red", REGULARIZADO: "green", SIN_DAM: "slate", PLANIFICADO: "slate", POSTERGADO: "orange", AMARILLO: "amber", GRIS: "slate",
   // verdes
   APROBADO: "green", APROBADA: "green", COMPLETADO: "green", COMPLETADA: "green", CONFIRMADA: "green", COBRADO: "green", PAGADA: "green", CONFORME: "green", EJECUTADO: "green", ENTREGADO: "green", ENTREGADA: "green", REGISTRADO: "green", ACTIVA: "green", ACTIVO: "green", VERIFICADO: "green", PRESENTE: "green", OK: "green", CUMPLE: "green", COSECHADA: "green", EMBARCADA: "green", COBRADA: "green", RECIBIDA: "green", CONSUMIDA: "green", "ÍNTEGRO": "green",
   // azules

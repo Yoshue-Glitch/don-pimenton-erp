@@ -5,7 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard, Network, Sprout, Factory, FlaskConical, Boxes, ShoppingCart, Users, Truck, Landmark, PackageSearch, IdCard,
   Globe2, Megaphone, FileSignature, Link2, PlayCircle, BarChart3, Settings, Bell, Search, Moon, Sun, LogOut, Menu, ChevronsLeft, ChevronsRight, Loader2,
+  Rocket, Microscope, Package, FileText, Anchor, ShieldCheck, CreditCard, RotateCcw, Gauge, HeartHandshake, Bot, ListChecks, CalendarDays, FlaskRound, Store,
 } from "lucide-react";
+import { ChatWidget } from "./ChatWidget";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth, useTheme } from "./providers";
@@ -15,34 +17,48 @@ type NavItem = { href: string; label: string; icon: any; module?: string; perm?:
 const NAV: { group: string; items: NavItem[] }[] = [
   { group: "General", items: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard.read" },
+    { href: "/simulacion", label: "Simulación de exportación", icon: Rocket, perm: "dashboard.read", sc: true },
     { href: "/organigrama", label: "Organigrama", icon: Network, perm: "dashboard.read" },
   ] },
-  { group: "Área Agrícola", items: [{ href: "/agricultura", label: "Campo y cosechas", icon: Sprout, module: "agricultura" }] },
-  { group: "Procesamiento y Calidad", items: [
-    { href: "/produccion", label: "Producción", icon: Factory, module: "produccion" },
-    { href: "/calidad", label: "Control de calidad", icon: FlaskConical, module: "calidad" },
-    { href: "/inventario", label: "Almacén e inventario", icon: Boxes, module: "inventario" },
+  { group: "Campo y planta", items: [
+    { href: "/agricultura", label: "Parcelas y cosechas", icon: Sprout, module: "agricultura" },
+    { href: "/produccion", label: "Producción y lotes", icon: Factory, module: "produccion" },
+    { href: "/calidad-exportacion", label: "Calidad e inocuidad (COA)", icon: Microscope, perm: "quality.read" },
+    { href: "/calidad", label: "Control de calidad (sacos)", icon: FlaskConical, module: "calidad" },
+    { href: "/inventario", label: "Inventario y almacén", icon: Boxes, module: "inventario" },
   ] },
-  { group: "Comercial", items: [
+  { group: "Comercio exterior", items: [
+    { href: "/comex", label: "Pedidos y paletas", icon: Package, module: "comex" },
+    { href: "/documentos", label: "Documentos de exportación", icon: FileText, module: "documentos" },
+    { href: "/aduanas", label: "Seguimiento aduanero", icon: Anchor, module: "aduanas" },
+    { href: "/cumplimiento", label: "Cumplimiento FDA y SUNAT", icon: ShieldCheck, module: "cumplimiento" },
+    { href: "/pagos", label: "Pagos y cobranza", icon: CreditCard, module: "pagos" },
+    { href: "/logistica-inversa", label: "Logística inversa", icon: RotateCcw, module: "inversa" },
+    { href: "/exportaciones", label: "Socios y órdenes (legado)", icon: Globe2, module: "exportaciones" },
+    { href: "/marketing", label: "Marketing y marca", icon: Megaphone, module: "marketing" },
+  ] },
+  { group: "Smart Contracts", items: [
+    { href: "/smart-contract", label: "Smart Contract", icon: FileSignature, module: "blockchain", sc: true },
+    { href: "/blockchain", label: "Explorador blockchain", icon: Link2, module: "blockchain" },
+  ] },
+  { group: "Comercial nacional", items: [
     { href: "/ventas", label: "Ventas nacionales", icon: ShoppingCart, module: "ventas" },
     { href: "/ventas?tab=clientes", label: "Clientes", icon: Users, module: "ventas" },
-    { href: "/logistica", label: "Logística", icon: Truck, module: "logistica" },
+    { href: "/logistica", label: "Despachos nacionales", icon: Truck, module: "logistica" },
   ] },
-  { group: "Administración y Finanzas", items: [
-    { href: "/finanzas", label: "Finanzas", icon: Landmark, module: "finanzas" },
+  { group: "Gestión", items: [
+    { href: "/finanzas", label: "Costos y finanzas", icon: Landmark, module: "finanzas" },
+    { href: "/kpi", label: "Indicadores KPI", icon: Gauge, module: "kpi" },
+    { href: "/responsabilidad-social", label: "Responsabilidad social", icon: HeartHandshake, module: "rs" },
     { href: "/compras", label: "Compras", icon: PackageSearch, module: "compras" },
     { href: "/rrhh", label: "Recursos Humanos", icon: IdCard, module: "rrhh" },
   ] },
-  { group: "Exportaciones", items: [
-    { href: "/exportaciones", label: "Exportaciones", icon: Globe2, module: "exportaciones" },
-    { href: "/marketing", label: "Marketing y marca", icon: Megaphone, module: "marketing" },
-    { href: "/smart-contract", label: "Smart Contract", icon: FileSignature, module: "blockchain", sc: true },
-    { href: "/blockchain", label: "Panel blockchain", icon: Link2, module: "blockchain" },
-  ] },
   { group: "Sistema", items: [
-    { href: "/demo", label: "Demostración guiada", icon: PlayCircle, perm: "dashboard.read" },
+    { href: "/asistente", label: "Asistente de IA", icon: Bot, module: "asistente" },
+    { href: "/pruebas", label: "Pruebas P1–P12", icon: ListChecks, perm: "dashboard.read" },
+    { href: "/demo", label: "Demostración (sacos)", icon: PlayCircle, perm: "dashboard.read" },
     { href: "/reportes", label: "Reportes", icon: BarChart3, perm: "reports.read" },
-    { href: "/configuracion", label: "Configuración", icon: Settings, perm: "__config" },
+    { href: "/configuracion", label: "Usuarios y seguridad", icon: Settings, perm: "__config" },
   ] },
 ];
 
@@ -155,9 +171,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobile(true)} userName={user?.name ?? ""} roleName={user?.roleName ?? ""} onLogout={logout} />
         <div className="border-b border-gold/30 bg-gold-50 px-4 py-1.5 text-center text-[11px] text-amberx dark:bg-gold/10 dark:text-gold">
-          Entorno de demostración · datos ficticios · blockchain local Hardhat (sin dinero real) · comprobantes internos sin validez tributaria
+          <b>MODO DEMOSTRACIÓN</b> · datos ficticios · blockchain local Hardhat (sin dinero real) · el ERP prepara datos: no transmite a SUNAT, VUCE, FDA ni CBP · comprobantes internos sin validez tributaria
         </div>
         <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-7">{children}</main>
+        <ChatWidget />
         <footer className="px-6 pb-4 text-center text-[11px] text-muted">Don Pimentón · “Del campo al mercado, con calidad y trazabilidad” · Arequipa, Perú</footer>
       </div>
     </div>
@@ -204,6 +221,9 @@ function Topbar({ onMenu, userName, roleName, onLogout }: { onMenu: () => void; 
         )}
       </div>
       <div className="ml-auto flex items-center gap-3 sm:gap-5">
+        <PhaseSelector />
+        <span className="hidden items-center gap-1.5 text-xs text-muted xl:flex"><CalendarDays className="h-4 w-4" />{new Date().toLocaleDateString("es-PE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}</span>
+        <Link href="/portal" target="_blank" title="Vista del comprador" className="hidden items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-bold text-forest hover:border-agro md:flex dark:text-emerald-200"><Store className="h-4 w-4" />Portal comprador</Link>
         <button onClick={toggle} className="text-forest hover:opacity-80 dark:text-emerald-200" title={dark ? "Modo claro" : "Modo oscuro"}>{dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
         <div className="relative">
           <button onClick={() => { setOpenBell((o) => !o); setOpenUser(false); }} className="relative flex text-forest dark:text-emerald-200" title="Alertas">
@@ -238,5 +258,27 @@ function Topbar({ onMenu, userName, roleName, onLogout }: { onMenu: () => void; 
         </div>
       </div>
     </header>
+  );
+}
+
+
+/** Selector de fase del proyecto (distingue operación real actual de operaciones proyectadas). */
+const PHASES = [
+  { id: "1", label: "Fase 1 · Preparación y certificación", kind: "REAL" },
+  { id: "2", label: "Fase 2 · Asociatividad", kind: "PROYECTADA" },
+  { id: "3", label: "Fase 3 · Exportación indirecta", kind: "PROYECTADA" },
+  { id: "4", label: "Fase 4 · Exportación directa", kind: "PROYECTADA" },
+];
+function PhaseSelector() {
+  const [phase, setPhase] = React.useState("3");
+  React.useEffect(() => { try { setPhase(localStorage.getItem("dp-phase") ?? "3"); } catch { /* */ } }, []);
+  const cur = PHASES.find((p) => p.id === phase)!;
+  return (
+    <label className="hidden items-center gap-2 lg:flex" title="La venta nacional en sacos es la operación REAL actual; la exportación de frascos es PROYECTADA">
+      <select value={phase} onChange={(e) => { setPhase(e.target.value); try { localStorage.setItem("dp-phase", e.target.value); } catch { /* */ } window.dispatchEvent(new Event("dp-phase")); }} className="h-9 rounded-lg border border-line bg-bg px-2 text-xs font-semibold text-fg outline-none">
+        {PHASES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+      </select>
+      <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-black", cur.kind === "REAL" ? "bg-agro-50 text-agro" : "bg-bluex-50 text-bluex")}>{cur.kind}</span>
+    </label>
   );
 }
