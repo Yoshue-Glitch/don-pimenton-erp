@@ -14,10 +14,11 @@ import { createInspection, decideInspection } from "../modules/quality";
 import { createSalesOrder, collectReceivable } from "../modules/sales";
 import { createDispatch, advanceDispatch } from "../modules/logistics";
 import { applyMovement } from "../modules/inventory.service";
+import { seedExport } from "./seedExport";
 
 // En un despliegue público defina DEMO_PASSWORD para no usar la contraseña documentada.
 /** Versión de los datos demo: al subirla, las bases existentes (p. ej. Render) se recargan una vez al iniciar. */
-export const DEMO_DATA_VERSION = 2;
+export const DEMO_DATA_VERSION = 3;
 
 export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "DonPimenton#2026";
 
@@ -106,6 +107,8 @@ const BUSINESS_TABLES = [
   "InventoryMovement", "InventoryBalance", "QualityInspection", "QualitySpec", "Document", "ProductionStage", "ProductionOrder", "Lot",
   "Harvest", "AgriActivity", "Campaign", "Parcel", "Customer", "WarehouseLocation", "Warehouse", "Product", "Budget", "ExchangeRate",
   "TrainingParticipant", "Training", "Evaluation", "LeaveRequest", "Attendance", "WorkerContract", "Worker", "MarketingCampaign",
+  "LabAnalysis", "AutomationEvent", "Payment", "Claim", "ComplianceItem", "ShipmentCost", "Pallet", "ExportShipment", "CircularRecord", "RecallDrill",
+  "RsProject", "RsIndicator",
 ];
 
 export async function resetBusinessData(db: PrismaClient) {
@@ -350,6 +353,7 @@ export async function seedBaseData(db: PrismaClient) {
   await setSequence(db as any, "EXP-2026", 2);
 
   await seedMarketing(db);
+  await seedExport(db);
 
   // ---------------------------------------------------------- RR.HH.
   const days = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"];

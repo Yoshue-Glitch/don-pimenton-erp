@@ -1,3 +1,4 @@
+import { verifyTotp, newSecret, otpauthUri } from "../lib/totp";
 import { Router, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -10,7 +11,7 @@ import { config } from "../config";
 import { sha256Hex } from "../lib/hash";
 import { getSetting } from "../lib/settings";
 
-export interface AuthUser { id: number; email: string; name: string; role: string; roleName: string; permissions: Set<string>; }
+export interface AuthUser { id: number; email: string; name: string; role: string; roleName: string; permissions: Set<string>; customerId: number | null; mfa: boolean; }
 
 declare global {
   namespace Express { interface Request { user?: AuthUser } }
@@ -19,7 +20,7 @@ declare global {
 async function loadUser(userId: number): Promise<AuthUser | null> {
   const u = await prisma.user.findUnique({ where: { id: userId }, include: { role: { include: { permissions: { include: { permission: true } } } } } });
   if (!u || !u.active) return null;
-  return { id: u.id, email: u.email, name: u.name, role: u.role.code, roleName: u.role.name, permissions: new Set(u.role.permissions.map((rp) => rp.permission.code)) };
+  return { id: u.id, email: u.email, name: u.name, role: u.role.code, roleName: u.role.name, permissions: new Set(u.role.permissions.map((rp) => rp.permission.code)), customerId: u.customerId, mfa: u.totpEnabled };
 }
 
 /** Autenticación por cookie httpOnly con token opaco (solo se guarda su hash). */
@@ -65,6 +66,8 @@ const MODULE_PERMS: Record<string, string> = {
   agricultura: "agri.read", produccion: "production.read", calidad: "quality.read", inventario: "inventory.read",
   compras: "purchases.read", ventas: "sales.read", logistica: "logistics.read", finanzas: "finance.read",
   blockchain: "blockchain.read", exportaciones: "exports.read", rrhh: "hr.read", marketing: "marketing.read",
+  comex: "trade.read", documentos: "docs.read", aduanas: "customs.read", cumplimiento: "compliance.read", costos: "costs.read",
+  kpi: "kpi.read", asistente: "ai.use", rs: "rs.read", inversa: "reverse.read", pagos: "payments.read", portal: "portal.access",
 };
 
 /** Bloquea las rutas de un módulo desactivado en Configuración. */
@@ -77,7 +80,7 @@ export const requireModule = (module: string) => ah(async (_req, _res, next) => 
 export const authRouter = Router();
 
 authRouter.post("/login", ah(async (req, res) => {
-  const { email, password } = parse(z.object({ email: z.string().email(), password: z.string().min(1).max(200) }), req.body);
+  const { email, password, otp } = parse(z.object({ email: z.string().email(), password: z.string().min(1).max(200), otp: z.string().max(10).optional() }), req.body);
   const u = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   const generic = new AppError(401, "Correo o contraseña incorrectos", "INVALID_CREDENTIALS");
   if (!u || !u.active) { await bcrypt.compare(password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv"); throw generic; }
@@ -88,6 +91,14 @@ authRouter.post("/login", ah(async (req, res) => {
     await prisma.user.update({ where: { id: u.id }, data: { failedAttempts: attempts, lockedUntil: attempts >= config.maxLoginAttempts ? new Date(Date.now() + config.lockMinutes * 60000) : null } });
     await audit(prisma, u.id, "LOGIN_FALLIDO", "user", u.id, { attempts }, req.ip);
     throw generic;
+  }
+  // Doble factor (TOTP) para roles críticos que lo activaron
+  if (u.totpEnabled && u.totpSecret) {
+    if (!otp) throw new AppError(401, "Ingrese el código de 6 dígitos de su aplicación autenticadora", "MFA_REQUIRED");
+    if (!verifyTotp(u.totpSecret, otp)) {
+      await audit(prisma, u.id, "MFA_FALLIDO", "user", u.id, {}, req.ip);
+      throw new AppError(401, "Código de doble factor incorrecto", "MFA_INVALID");
+    }
   }
   const token = crypto.randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + config.sessionTtlHours * 3600000);
@@ -118,4 +129,29 @@ authRouter.get("/me", requireAuth, ah(async (req, res) => {
   res.json({ user: serializeUser(req.user!), modules: visible, modulesEnabled: modules });
 }));
 
-export const serializeUser = (u: AuthUser) => ({ id: u.id, email: u.email, name: u.name, role: u.role, roleName: u.roleName, permissions: [...u.permissions] });
+export const serializeUser = (u: AuthUser) => ({ id: u.id, email: u.email, name: u.name, role: u.role, roleName: u.roleName, permissions: [...u.permissions], customerId: u.customerId, mfa: u.mfa });
+
+/** Roles críticos para los que se recomienda (y se puede exigir) doble factor. */
+export const CRITICAL_ROLES = ["ADMIN", "GERENCIA", "CALIDAD", "EXPORTACIONES", "LOGISTICA", "FINANZAS"];
+
+authRouter.post("/mfa/setup", requireAuth, ah(async (req, res) => {
+  const secret = newSecret();
+  await prisma.user.update({ where: { id: req.user!.id }, data: { totpSecret: secret, totpEnabled: false } });
+  res.json({ secret, uri: otpauthUri(secret, req.user!.email), critical: CRITICAL_ROLES.includes(req.user!.role) });
+}));
+authRouter.post("/mfa/enable", requireAuth, ah(async (req, res) => {
+  const { code } = parse(z.object({ code: z.string() }), req.body);
+  const u = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (!u.totpSecret || !verifyTotp(u.totpSecret, code)) throw new AppError(422, "Código incorrecto. Revise la hora de su teléfono e intente de nuevo.", "MFA_INVALID");
+  await prisma.user.update({ where: { id: u.id }, data: { totpEnabled: true } });
+  await audit(prisma, u.id, "MFA_ACTIVADO", "user", u.id, {}, req.ip);
+  res.json({ ok: true });
+}));
+authRouter.post("/mfa/disable", requireAuth, ah(async (req, res) => {
+  const { code } = parse(z.object({ code: z.string() }), req.body);
+  const u = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (u.totpEnabled && (!u.totpSecret || !verifyTotp(u.totpSecret, code))) throw new AppError(422, "Código incorrecto", "MFA_INVALID");
+  await prisma.user.update({ where: { id: u.id }, data: { totpEnabled: false, totpSecret: null } });
+  await audit(prisma, u.id, "MFA_DESACTIVADO", "user", u.id, {}, req.ip);
+  res.json({ ok: true });
+}));

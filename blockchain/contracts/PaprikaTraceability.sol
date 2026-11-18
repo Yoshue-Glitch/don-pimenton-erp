@@ -10,6 +10,17 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 contract PaprikaTraceability is AccessControl {
     bytes32 public constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
     bytes32 public constant QUALITY_ROLE = keccak256("QUALITY_ROLE");
+    bytes32 public constant LOGISTICS_ROLE = keccak256("LOGISTICS_ROLE");
+
+    /// Hito de la línea de tiempo verificable (Parcela → Cosecha → Producción → Calidad → Envasado → Paleta → Embarque…)
+    struct Milestone {
+        string stage;
+        bytes32 docHash;
+        address actor;
+        uint64 timestamp;
+    }
+    mapping(bytes32 => Milestone[]) private _milestones;
+    mapping(bytes32 => bool) private _milestoneSeen; // keccak(lotId, stage) — evita duplicar un hito
 
     enum QualityStatus {
         Pending,
@@ -38,6 +49,10 @@ contract PaprikaTraceability is AccessControl {
     event LotDataUpdated(bytes32 indexed lotKey, string lotId, bytes32 previousHash, bytes32 newHash, uint32 version, address indexed actor);
     event QualityRecorded(bytes32 indexed lotKey, string lotId, QualityStatus status, bytes32 qualityCertHash, address indexed actor);
 
+    event MilestoneRecorded(bytes32 indexed lotKey, string lotId, string stage, bytes32 docHash, address indexed actor, uint256 timestamp);
+
+    error MilestoneDuplicated(string lotId, string stage);
+    error NotAuthorizedActor();
     error LotAlreadyRegistered(string lotId);
     error LotNotFound(string lotId);
     error InvalidHash();
@@ -93,6 +108,23 @@ contract PaprikaTraceability is AccessControl {
         lot.qualityBy = msg.sender;
         lot.updatedAt = uint64(block.timestamp);
         emit QualityRecorded(lotKey(lotId), lotId, status, certHash, msg.sender);
+    }
+
+    /// @notice Registra un hito de trazabilidad con el hash del documento de respaldo (fuera de la cadena).
+    function recordMilestone(string calldata lotId, string calldata stage, bytes32 docHash) external {
+        if (!hasRole(REGISTRAR_ROLE, msg.sender) && !hasRole(QUALITY_ROLE, msg.sender) && !hasRole(LOGISTICS_ROLE, msg.sender)) revert NotAuthorizedActor();
+        if (docHash == bytes32(0) || bytes(stage).length == 0 || bytes(stage).length > 40) revert InvalidHash();
+        _requireLot(lotId);
+        bytes32 key = lotKey(lotId);
+        bytes32 seen = keccak256(abi.encodePacked(lotId, "|", stage));
+        if (_milestoneSeen[seen]) revert MilestoneDuplicated(lotId, stage);
+        _milestoneSeen[seen] = true;
+        _milestones[key].push(Milestone({stage: stage, docHash: docHash, actor: msg.sender, timestamp: uint64(block.timestamp)}));
+        emit MilestoneRecorded(key, lotId, stage, docHash, msg.sender, block.timestamp);
+    }
+
+    function getMilestones(string calldata lotId) external view returns (Milestone[] memory) {
+        return _milestones[lotKey(lotId)];
     }
 
     function getLot(string calldata lotId) external view returns (Lot memory) {

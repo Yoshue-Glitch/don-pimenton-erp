@@ -168,7 +168,7 @@ const harvestSchema = z.object({
   date: z.coerce.date(),
   quantityKg: z.coerce.number().positive().max(1_000_000),
   notes: z.string().max(500).optional().nullable(),
-  lotCode: z.string().regex(/^MP-\d{4}-\d{3,}$/).optional(), // solo para la demostración
+  lotCode: z.string().regex(/^(MP-\d{4}-\d{3,}|LOTE-\d{4}-\d{2}-\d{3,})$/).optional(), // solo para la demostración
 });
 
 /** Registra una cosecha y genera automáticamente el lote de materia prima (MP-AAAA-NNN). */
@@ -181,7 +181,8 @@ export async function registerHarvest(tx: Tx, campaignId: number, input: z.infer
   if (!rawProduct) throw unprocessable("No existe el producto materia prima MP-PIM-FRESCO");
   const year = input.date.getFullYear();
   const harvest = await tx.harvest.create({ data: { code: await nextCode(tx, "COS", year, 3), campaignId, date: input.date, quantityKg: input.quantityKg, notes: input.notes } });
-  const lotCode = input.lotCode || (await nextCode(tx, "MP", year, 3));
+  // Formato del plan: LOTE-AAAA-MM-NNN (hereda parcela y fecha de cosecha)
+  const lotCode = input.lotCode || (await nextCode(tx, `LOTE-${year}-${String(input.date.getMonth() + 1).padStart(2, "0")}`, null, 3));
   const costs = await campaignCosts(tx, campaignId);
   const prevHarvested = await tx.harvest.aggregate({ where: { campaignId }, _sum: { quantityKg: true } });
   const unitCost = D(prevHarvested._sum.quantityKg).gt(0) ? costs.total.div(D(prevHarvested._sum.quantityKg)) : D(0);

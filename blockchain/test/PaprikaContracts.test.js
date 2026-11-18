@@ -69,6 +69,22 @@ describe("PaprikaTraceability", () => {
     expect(await ctx.trace.isApproved("DP-2026-001")).to.equal(true);
   });
 
+  it("registra hitos verificables de la línea de tiempo y rechaza duplicados o actores no autorizados", async () => {
+    const ctx = await loadFixture(deploy);
+    await ctx.trace.grantRole(await ctx.trace.LOGISTICS_ROLE(), ctx.logistics.address);
+    await ctx.trace.connect(ctx.registrar).registerLot("LOTE-2026-11-001", sha("d"));
+    await expect(ctx.trace.connect(ctx.registrar).recordMilestone("LOTE-2026-11-001", "COSECHA", sha("ficha")))
+      .to.emit(ctx.trace, "MilestoneRecorded");
+    await ctx.trace.connect(ctx.logistics).recordMilestone("LOTE-2026-11-001", "EMBARQUE", sha("bl"));
+    await expect(ctx.trace.connect(ctx.registrar).recordMilestone("LOTE-2026-11-001", "COSECHA", sha("otra")))
+      .to.be.revertedWithCustomError(ctx.trace, "MilestoneDuplicated");
+    await expect(ctx.trace.connect(ctx.intruder).recordMilestone("LOTE-2026-11-001", "PALETA", sha("x")))
+      .to.be.revertedWithCustomError(ctx.trace, "NotAuthorizedActor");
+    const ms = await ctx.trace.getMilestones("LOTE-2026-11-001");
+    expect(ms.length).to.equal(2);
+    expect(ms[0].docHash).to.equal(sha("ficha"));
+  });
+
   it("versiona la actualización de datos del lote", async () => {
     const ctx = await loadFixture(deploy);
     await ctx.trace.connect(ctx.registrar).registerLot("DP-1", sha("v1"));

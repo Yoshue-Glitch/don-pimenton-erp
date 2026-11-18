@@ -13,15 +13,15 @@ datasource db {
 // ============================================================ SEGURIDAD
 
 model Area {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  projected Boolean  @default(false) // área proyectada (futura)
-  active    Boolean  @default(true)
-  users     User[]
-  workers   Worker[]
+  id               Int               @id @default(autoincrement())
+  code             String            @unique
+  name             String
+  projected        Boolean           @default(false) // área proyectada (futura)
+  active           Boolean           @default(true)
+  workers          Worker[]
   purchaseRequests PurchaseRequest[]
-  budgets   Budget[]
+  budgets          Budget[]
+  users            User[]
 }
 
 model Role {
@@ -53,32 +53,35 @@ model RolePermission {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  email          String    @unique
-  name           String
-  passwordHash   String
-  roleId         Int
-  areaId         Int?
-  active         Boolean   @default(true)
-  failedAttempts Int       @default(0)
-  lockedUntil    DateTime?
-  lastLoginAt    DateTime?
-  createdAt      DateTime  @default(now())
-  role           Role      @relation(fields: [roleId], references: [id])
-  area           Area?     @relation(fields: [areaId], references: [id])
-  sessions       Session[]
-  auditLogs      AuditLog[]
-  movements      InventoryMovement[]
-  productionOrders ProductionOrder[]
-  inspections    QualityInspection[] @relation("inspector")
-  decisions      QualityInspection[] @relation("decider")
-  requests       PurchaseRequest[]   @relation("requester")
-  approvals      PurchaseRequest[]   @relation("approver")
-  adjustmentsRequested InventoryAdjustment[] @relation("adjRequester")
-  adjustmentsApproved  InventoryAdjustment[] @relation("adjApprover")
-  documents      Document[]
-  transactions   FinancialTransaction[]
-  chainTxs       BlockchainTransaction[]
+  id                   Int                     @id @default(autoincrement())
+  email                String                  @unique
+  name                 String
+  passwordHash         String
+  roleId               Int
+  areaId               Int?
+  active               Boolean                 @default(true)
+  failedAttempts       Int                     @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  customerId           Int? // cuentas del portal del comprador / broker / agente vinculadas a un cliente
+  totpSecret           String? // doble factor (TOTP RFC 6238)
+  totpEnabled          Boolean                 @default(false)
+  createdAt            DateTime                @default(now())
+  role                 Role                    @relation(fields: [roleId], references: [id])
+  area                 Area?                   @relation(fields: [areaId], references: [id])
+  sessions             Session[]
+  auditLogs            AuditLog[]
+  movements            InventoryMovement[]
+  productionOrders     ProductionOrder[]
+  inspections          QualityInspection[]     @relation("inspector")
+  decisions            QualityInspection[]     @relation("decider")
+  requests             PurchaseRequest[]       @relation("requester")
+  approvals            PurchaseRequest[]       @relation("approver")
+  adjustmentsRequested InventoryAdjustment[]   @relation("adjRequester")
+  adjustmentsApproved  InventoryAdjustment[]   @relation("adjApprover")
+  documents            Document[]
+  transactions         FinancialTransaction[]
+  chainTxs             BlockchainTransaction[]
 
   @@index([roleId])
 }
@@ -142,22 +145,22 @@ enum ContractType {
 }
 
 model Worker {
-  id             Int          @id @default(autoincrement())
-  code           String       @unique
-  firstName      String?      // opcional: los puestos se identifican por cargo y área
+  id             Int                   @id @default(autoincrement())
+  code           String                @unique
+  firstName      String? // opcional: los puestos se identifican por cargo y área
   lastName       String?
-  documentNumber String       @unique // dato personal: acceso restringido
+  documentNumber String                @unique // dato personal: acceso restringido
   phone          String?
   email          String?
   areaId         Int
   position       String
-  hireDate       DateTime     @db.Date
+  hireDate       DateTime              @db.Date
   contractType   ContractType
-  monthlySalary  Decimal      @db.Decimal(14, 2)
-  isTemporary    Boolean      @default(false)
-  active         Boolean      @default(true)
-  isDemo         Boolean      @default(true)
-  area           Area         @relation(fields: [areaId], references: [id])
+  monthlySalary  Decimal               @db.Decimal(14, 2)
+  isTemporary    Boolean               @default(false)
+  active         Boolean               @default(true)
+  isDemo         Boolean               @default(true)
+  area           Area                  @relation(fields: [areaId], references: [id])
   contracts      WorkerContract[]
   attendance     Attendance[]
   leaves         LeaveRequest[]
@@ -169,14 +172,14 @@ model Worker {
 }
 
 model WorkerContract {
-  id           Int          @id @default(autoincrement())
-  workerId     Int
-  type         ContractType
-  startDate    DateTime     @db.Date
-  endDate      DateTime?    @db.Date
-  salary       Decimal      @db.Decimal(14, 2)
-  notes        String?
-  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  id        Int          @id @default(autoincrement())
+  workerId  Int
+  type      ContractType
+  startDate DateTime     @db.Date
+  endDate   DateTime?    @db.Date
+  salary    Decimal      @db.Decimal(14, 2)
+  notes     String?
+  worker    Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
 }
 
 enum AttendanceStatus {
@@ -207,7 +210,7 @@ enum ApprovalStatus {
 model LeaveRequest {
   id        Int            @id @default(autoincrement())
   workerId  Int
-  type      String         // VACACIONES, PERMISO, LICENCIA
+  type      String // VACACIONES, PERMISO, LICENCIA
   startDate DateTime       @db.Date
   endDate   DateTime       @db.Date
   days      Int
@@ -237,13 +240,13 @@ model TrainingParticipant {
 }
 
 model Evaluation {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   workerId  Int
   period    String
-  score     Decimal  @db.Decimal(5, 2)
+  score     Decimal @db.Decimal(5, 2)
   evaluator String
   comments  String?
-  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  worker    Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================ AGRÍCOLA
@@ -277,20 +280,20 @@ enum CampaignStatus {
 }
 
 model Campaign {
-  id                Int            @id @default(autoincrement())
-  code              String         @unique
+  id                Int                    @id @default(autoincrement())
+  code              String                 @unique
   parcelId          Int
   variety           String
-  sowingDate        DateTime       @db.Date
-  estHarvestDate    DateTime       @db.Date
-  actualHarvestDate DateTime?      @db.Date
-  estimatedYieldKg  Decimal        @db.Decimal(14, 3)
-  actualYieldKg     Decimal        @default(0) @db.Decimal(14, 3)
-  status            CampaignStatus @default(EN_CURSO)
+  sowingDate        DateTime               @db.Date
+  estHarvestDate    DateTime               @db.Date
+  actualHarvestDate DateTime?              @db.Date
+  estimatedYieldKg  Decimal                @db.Decimal(14, 3)
+  actualYieldKg     Decimal                @default(0) @db.Decimal(14, 3)
+  status            CampaignStatus         @default(EN_CURSO)
   notes             String?
-  isDemo            Boolean        @default(true)
-  createdAt         DateTime       @default(now())
-  parcel            Parcel         @relation(fields: [parcelId], references: [id])
+  isDemo            Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  parcel            Parcel                 @relation(fields: [parcelId], references: [id])
   activities        AgriActivity[]
   harvests          Harvest[]
   lots              Lot[]
@@ -316,7 +319,7 @@ model AgriActivity {
   date        DateTime         @db.Date
   description String
   responsible String
-  productId   Int?             // insumo utilizado
+  productId   Int? // insumo utilizado
   quantity    Decimal?         @db.Decimal(14, 3)
   cost        Decimal          @default(0) @db.Decimal(14, 2)
   createdAt   DateTime         @default(now())
@@ -327,16 +330,16 @@ model AgriActivity {
 }
 
 model Harvest {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  campaignId  Int
-  date        DateTime @db.Date
-  quantityKg  Decimal  @db.Decimal(14, 3)
-  notes       String?
-  sentToProcessing Boolean @default(false)
-  createdAt   DateTime @default(now())
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  lot         Lot?
+  id               Int      @id @default(autoincrement())
+  code             String   @unique
+  campaignId       Int
+  date             DateTime @db.Date
+  quantityKg       Decimal  @db.Decimal(14, 3)
+  notes            String?
+  sentToProcessing Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  campaign         Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lot              Lot?
 
   @@index([campaignId])
 }
@@ -351,21 +354,21 @@ enum ProductType {
 }
 
 model Product {
-  id             Int         @id @default(autoincrement())
-  code           String      @unique
-  name           String
-  type           ProductType
-  unit           String      // KG, UND, L
-  bagWeightKg    Decimal?    @db.Decimal(10, 3) // presentación en sacos (25 kg)
-  minStock       Decimal     @default(0) @db.Decimal(14, 3)
-  standardCost   Decimal     @default(0) @db.Decimal(14, 2)
-  salePricePerKg Decimal?    @db.Decimal(14, 2)
-  active         Boolean     @default(true)
-  lots           Lot[]
-  balances       InventoryBalance[]
-  movements      InventoryMovement[]
-  activities     AgriActivity[]
-  specs          QualitySpec[]
+  id                   Int                   @id @default(autoincrement())
+  code                 String                @unique
+  name                 String
+  type                 ProductType
+  unit                 String // KG, UND, L
+  bagWeightKg          Decimal?              @db.Decimal(10, 3) // presentación en sacos (25 kg)
+  minStock             Decimal               @default(0) @db.Decimal(14, 3)
+  standardCost         Decimal               @default(0) @db.Decimal(14, 2)
+  salePricePerKg       Decimal?              @db.Decimal(14, 2)
+  active               Boolean               @default(true)
+  lots                 Lot[]
+  balances             InventoryBalance[]
+  movements            InventoryMovement[]
+  activities           AgriActivity[]
+  specs                QualitySpec[]
   purchaseRequestItems PurchaseRequestItem[]
   purchaseOrderItems   PurchaseOrderItem[]
   salesQuoteItems      SalesQuoteItem[]
@@ -404,35 +407,35 @@ enum ChainStatus {
 }
 
 model Lot {
-  id                Int           @id @default(autoincrement())
-  code              String        @unique
+  id                Int                    @id @default(autoincrement())
+  code              String                 @unique
   type              LotType
   productId         Int
   campaignId        Int?
-  harvestId         Int?          @unique
-  parentLotId       Int?          // lote de materia prima de origen
+  harvestId         Int?                   @unique
+  parentLotId       Int? // lote de materia prima de origen
   productionOrderId Int?
-  quantityKg        Decimal       @db.Decimal(14, 3) // cantidad inicial del lote
-  consumedKg        Decimal       @default(0) @db.Decimal(14, 3) // MP consumida en producción
+  quantityKg        Decimal                @db.Decimal(14, 3) // cantidad inicial del lote
+  consumedKg        Decimal                @default(0) @db.Decimal(14, 3) // MP consumida en producción
   bags              Int?
-  productionDate    DateTime      @db.Date
-  expiryDate        DateTime?     @db.Date
-  status            LotStatus     @default(REGISTRADO)
-  qualityStatus     QualityStatus @default(PENDIENTE)
-  unitCost          Decimal       @default(0) @db.Decimal(14, 4)
-  dataHash          String?       // SHA-256 de los datos del lote (0x…)
-  certHash          String?       // SHA-256 del COA / informe
-  chainStatus       ChainStatus   @default(NO_REGISTRADO)
+  productionDate    DateTime               @db.Date
+  expiryDate        DateTime?              @db.Date
+  status            LotStatus              @default(REGISTRADO)
+  qualityStatus     QualityStatus          @default(PENDIENTE)
+  unitCost          Decimal                @default(0) @db.Decimal(14, 4)
+  dataHash          String? // SHA-256 de los datos del lote (0x…)
+  certHash          String? // SHA-256 del COA / informe
+  chainStatus       ChainStatus            @default(NO_REGISTRADO)
   chainTxHash       String?
-  isDemo            Boolean       @default(true)
-  createdAt         DateTime      @default(now())
-  product           Product       @relation(fields: [productId], references: [id])
-  campaign          Campaign?     @relation(fields: [campaignId], references: [id])
-  harvest           Harvest?      @relation(fields: [harvestId], references: [id])
-  parentLot         Lot?          @relation("lotGenealogy", fields: [parentLotId], references: [id])
-  childLots         Lot[]         @relation("lotGenealogy")
-  productionOrder   ProductionOrder?  @relation("outputs", fields: [productionOrderId], references: [id])
-  consumedBy        ProductionOrder[] @relation("source")
+  isDemo            Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  product           Product                @relation(fields: [productId], references: [id])
+  campaign          Campaign?              @relation(fields: [campaignId], references: [id])
+  harvest           Harvest?               @relation(fields: [harvestId], references: [id])
+  parentLot         Lot?                   @relation("lotGenealogy", fields: [parentLotId], references: [id])
+  childLots         Lot[]                  @relation("lotGenealogy")
+  productionOrder   ProductionOrder?       @relation("outputs", fields: [productionOrderId], references: [id])
+  consumedBy        ProductionOrder[]      @relation("source")
   inspections       QualityInspection[]
   balances          InventoryBalance[]
   movements         InventoryMovement[]
@@ -441,6 +444,9 @@ model Lot {
   agreements        SmartAgreement[]
   exportOrders      ExportOrder[]
   transactions      FinancialTransaction[]
+  shipments         ExportShipment[]       @relation("shipmentLot")
+  labAnalyses       LabAnalysis[]
+  pallets           Pallet[]               @relation("palletLot")
 
   @@index([type, qualityStatus])
   @@index([parentLotId])
@@ -467,53 +473,53 @@ enum StageType {
 }
 
 model ProductionOrder {
-  id               Int              @id @default(autoincrement())
-  code             String           @unique
-  sourceLotId      Int
-  responsibleId    Int
-  startDate        DateTime
-  endDate          DateTime?
-  initialWeightKg  Decimal          @db.Decimal(14, 3)
-  finalWeightKg    Decimal?         @db.Decimal(14, 3)
-  wasteKg          Decimal?         @db.Decimal(14, 3)
-  yieldPct         Decimal?         @db.Decimal(7, 3)
-  dryingTempC      Decimal?         @db.Decimal(6, 2)
-  dryingHours      Decimal?         @db.Decimal(6, 2)
-  status           ProductionStatus @default(EN_PROCESO)
-  currentStage     StageType        @default(RECEPCION)
-  rawMaterialCost  Decimal          @default(0) @db.Decimal(14, 2)
-  laborCost        Decimal          @default(0) @db.Decimal(14, 2)
-  energyCost       Decimal          @default(0) @db.Decimal(14, 2)
-  packagingCost    Decimal          @default(0) @db.Decimal(14, 2)
-  otherCost        Decimal          @default(0) @db.Decimal(14, 2)
-  totalCost        Decimal          @default(0) @db.Decimal(14, 2)
-  observations     String?
-  isDemo           Boolean          @default(true)
-  createdAt        DateTime         @default(now())
-  sourceLot        Lot              @relation("source", fields: [sourceLotId], references: [id])
-  responsible      User             @relation(fields: [responsibleId], references: [id])
-  stages           ProductionStage[]
-  outputLots       Lot[]            @relation("outputs")
-  transactions     FinancialTransaction[]
+  id              Int                    @id @default(autoincrement())
+  code            String                 @unique
+  sourceLotId     Int
+  responsibleId   Int
+  startDate       DateTime
+  endDate         DateTime?
+  initialWeightKg Decimal                @db.Decimal(14, 3)
+  finalWeightKg   Decimal?               @db.Decimal(14, 3)
+  wasteKg         Decimal?               @db.Decimal(14, 3)
+  yieldPct        Decimal?               @db.Decimal(7, 3)
+  dryingTempC     Decimal?               @db.Decimal(6, 2)
+  dryingHours     Decimal?               @db.Decimal(6, 2)
+  status          ProductionStatus       @default(EN_PROCESO)
+  currentStage    StageType              @default(RECEPCION)
+  rawMaterialCost Decimal                @default(0) @db.Decimal(14, 2)
+  laborCost       Decimal                @default(0) @db.Decimal(14, 2)
+  energyCost      Decimal                @default(0) @db.Decimal(14, 2)
+  packagingCost   Decimal                @default(0) @db.Decimal(14, 2)
+  otherCost       Decimal                @default(0) @db.Decimal(14, 2)
+  totalCost       Decimal                @default(0) @db.Decimal(14, 2)
+  observations    String?
+  isDemo          Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  sourceLot       Lot                    @relation("source", fields: [sourceLotId], references: [id])
+  responsible     User                   @relation(fields: [responsibleId], references: [id])
+  stages          ProductionStage[]
+  outputLots      Lot[]                  @relation("outputs")
+  transactions    FinancialTransaction[]
 
   @@index([sourceLotId])
   @@index([status])
 }
 
 model ProductionStage {
-  id          Int       @id @default(autoincrement())
-  orderId     Int
-  stage       StageType
-  seq         Int
-  startedAt   DateTime?
-  completedAt DateTime?
-  inputKg     Decimal?  @db.Decimal(14, 3)
-  outputKg    Decimal?  @db.Decimal(14, 3)
-  temperatureC Decimal? @db.Decimal(6, 2)
-  durationH   Decimal?  @db.Decimal(6, 2)
-  responsible String?
-  notes       String?
-  order       ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id           Int             @id @default(autoincrement())
+  orderId      Int
+  stage        StageType
+  seq          Int
+  startedAt    DateTime?
+  completedAt  DateTime?
+  inputKg      Decimal?        @db.Decimal(14, 3)
+  outputKg     Decimal?        @db.Decimal(14, 3)
+  temperatureC Decimal?        @db.Decimal(6, 2)
+  durationH    Decimal?        @db.Decimal(6, 2)
+  responsible  String?
+  notes        String?
+  order        ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([orderId, stage])
 }
@@ -523,8 +529,8 @@ model ProductionStage {
 model QualitySpec {
   id         Int       @id @default(autoincrement())
   productId  Int
-  customerId Int?      // null = especificación interna general
-  parameter  String    // HUMEDAD, COLOR_ASTA, GRANULOMETRIA
+  customerId Int? // null = especificación interna general
+  parameter  String // HUMEDAD, COLOR_ASTA, GRANULOMETRIA
   minValue   Decimal?  @db.Decimal(10, 3)
   maxValue   Decimal?  @db.Decimal(10, 3)
   unit       String
@@ -543,29 +549,29 @@ enum LabResult {
 }
 
 model QualityInspection {
-  id              Int           @id @default(autoincrement())
-  code            String        @unique
-  lotId           Int
-  inspectorId     Int
-  date            DateTime
-  moisturePct     Decimal?      @db.Decimal(6, 2)
-  astaColor       Decimal?      @db.Decimal(8, 2)
-  granulometry    Decimal?      @db.Decimal(6, 2) // % que pasa la malla indicada
+  id               Int           @id @default(autoincrement())
+  code             String        @unique
+  lotId            Int
+  inspectorId      Int
+  date             DateTime
+  moisturePct      Decimal?      @db.Decimal(6, 2)
+  astaColor        Decimal?      @db.Decimal(8, 2)
+  granulometry     Decimal?      @db.Decimal(6, 2) // % que pasa la malla indicada
   granulometryMesh String?
-  microbiological LabResult     @default(PENDIENTE)
-  contaminants    LabResult     @default(PENDIENTE)
-  observations    String?
-  coaDocumentId   Int?
-  specCustomerId  Int?
-  specEvaluation  Json?
-  status          QualityStatus @default(EN_EVALUACION)
-  decidedById     Int?
-  decidedAt       DateTime?
-  createdAt       DateTime      @default(now())
-  lot             Lot           @relation(fields: [lotId], references: [id])
-  inspector       User          @relation("inspector", fields: [inspectorId], references: [id])
-  decidedBy       User?         @relation("decider", fields: [decidedById], references: [id])
-  coaDocument     Document?     @relation(fields: [coaDocumentId], references: [id], onDelete: SetNull)
+  microbiological  LabResult     @default(PENDIENTE)
+  contaminants     LabResult     @default(PENDIENTE)
+  observations     String?
+  coaDocumentId    Int?
+  specCustomerId   Int?
+  specEvaluation   Json?
+  status           QualityStatus @default(EN_EVALUACION)
+  decidedById      Int?
+  decidedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  lot              Lot           @relation(fields: [lotId], references: [id])
+  inspector        User          @relation("inspector", fields: [inspectorId], references: [id])
+  decidedBy        User?         @relation("decider", fields: [decidedById], references: [id])
+  coaDocument      Document?     @relation(fields: [coaDocumentId], references: [id], onDelete: SetNull)
 
   @@index([lotId])
 }
@@ -596,17 +602,17 @@ model WarehouseLocation {
 /// Saldo por producto / almacén / lote. Las restricciones CHECK (>= 0) se
 /// añaden en la migración SQL para impedir stock negativo a nivel de BD.
 model InventoryBalance {
-  id          Int       @id @default(autoincrement())
-  productId   Int
-  warehouseId Int
-  lotId       Int?
-  availableKg Decimal   @default(0) @db.Decimal(14, 3)
-  reservedKg  Decimal   @default(0) @db.Decimal(14, 3)
-  quarantineKg Decimal  @default(0) @db.Decimal(14, 3)
-  updatedAt   DateTime  @updatedAt
-  product     Product   @relation(fields: [productId], references: [id])
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  lot         Lot?      @relation(fields: [lotId], references: [id])
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  warehouseId  Int
+  lotId        Int?
+  availableKg  Decimal   @default(0) @db.Decimal(14, 3)
+  reservedKg   Decimal   @default(0) @db.Decimal(14, 3)
+  quarantineKg Decimal   @default(0) @db.Decimal(14, 3)
+  updatedAt    DateTime  @updatedAt
+  product      Product   @relation(fields: [productId], references: [id])
+  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
+  lot          Lot?      @relation(fields: [lotId], references: [id])
 
   @@index([productId])
   @@index([lotId])
@@ -629,25 +635,25 @@ enum MovementType {
 }
 
 model InventoryMovement {
-  id             Int          @id @default(autoincrement())
-  code           String       @unique
-  type           MovementType
-  productId      Int
-  warehouseId    Int
-  lotId          Int?
-  quantityKg     Decimal      @db.Decimal(14, 3)
-  bags           Decimal?     @db.Decimal(10, 2)
-  unitCost       Decimal      @default(0) @db.Decimal(14, 4)
-  balanceAfter   Decimal      @db.Decimal(14, 3) // saldo físico (disp.+res.+cuar.) del producto en el almacén
-  reason         String
-  referenceType  String
-  referenceCode  String
-  userId         Int
-  createdAt      DateTime     @default(now())
-  product        Product      @relation(fields: [productId], references: [id])
-  warehouse      Warehouse    @relation(fields: [warehouseId], references: [id])
-  lot            Lot?         @relation(fields: [lotId], references: [id])
-  user           User         @relation(fields: [userId], references: [id])
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  type          MovementType
+  productId     Int
+  warehouseId   Int
+  lotId         Int?
+  quantityKg    Decimal      @db.Decimal(14, 3)
+  bags          Decimal?     @db.Decimal(10, 2)
+  unitCost      Decimal      @default(0) @db.Decimal(14, 4)
+  balanceAfter  Decimal      @db.Decimal(14, 3) // saldo físico (disp.+res.+cuar.) del producto en el almacén
+  reason        String
+  referenceType String
+  referenceCode String
+  userId        Int
+  createdAt     DateTime     @default(now())
+  product       Product      @relation(fields: [productId], references: [id])
+  warehouse     Warehouse    @relation(fields: [warehouseId], references: [id])
+  lot           Lot?         @relation(fields: [lotId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
 
   @@index([productId, warehouseId, createdAt])
   @@index([lotId])
@@ -695,19 +701,19 @@ model InventoryReservation {
 // ============================================================ COMPRAS
 
 model Supplier {
-  id        Int      @id @default(autoincrement())
-  ruc       String   @unique
-  name      String
-  contact   String?
-  email     String?
-  phone     String?
-  address   String?
-  category  String
-  active    Boolean  @default(true)
-  isDemo    Boolean  @default(true)
-  quotes    SupplierQuote[]
-  orders    PurchaseOrder[]
-  payables  AccountPayable[]
+  id       Int              @id @default(autoincrement())
+  ruc      String           @unique
+  name     String
+  contact  String?
+  email    String?
+  phone    String?
+  address  String?
+  category String
+  active   Boolean          @default(true)
+  isDemo   Boolean          @default(true)
+  quotes   SupplierQuote[]
+  orders   PurchaseOrder[]
+  payables AccountPayable[]
 }
 
 enum PurchaseRequestStatus {
@@ -773,26 +779,26 @@ enum PurchaseOrderStatus {
 }
 
 model PurchaseOrder {
-  id           Int                 @id @default(autoincrement())
-  code         String              @unique
-  requestId    Int?
-  supplierId   Int
-  quoteId      Int?
-  date         DateTime
-  currency     String              @default("PEN")
-  exchangeRate Decimal             @default(1) @db.Decimal(10, 4)
-  subtotal     Decimal             @db.Decimal(14, 2)
-  tax          Decimal             @db.Decimal(14, 2)
-  total        Decimal             @db.Decimal(14, 2)
-  status       PurchaseOrderStatus @default(EMITIDA)
-  conformityAt DateTime?
+  id               Int                 @id @default(autoincrement())
+  code             String              @unique
+  requestId        Int?
+  supplierId       Int
+  quoteId          Int?
+  date             DateTime
+  currency         String              @default("PEN")
+  exchangeRate     Decimal             @default(1) @db.Decimal(10, 4)
+  subtotal         Decimal             @db.Decimal(14, 2)
+  tax              Decimal             @db.Decimal(14, 2)
+  total            Decimal             @db.Decimal(14, 2)
+  status           PurchaseOrderStatus @default(EMITIDA)
+  conformityAt     DateTime?
   smartAgreementId Int?
-  createdAt    DateTime            @default(now())
-  request      PurchaseRequest?    @relation(fields: [requestId], references: [id])
-  supplier     Supplier            @relation(fields: [supplierId], references: [id])
-  items        PurchaseOrderItem[]
-  receipts     GoodsReceipt[]
-  payables     AccountPayable[]
+  createdAt        DateTime            @default(now())
+  request          PurchaseRequest?    @relation(fields: [requestId], references: [id])
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  items            PurchaseOrderItem[]
+  receipts         GoodsReceipt[]
+  payables         AccountPayable[]
 }
 
 model PurchaseOrderItem {
@@ -814,7 +820,7 @@ model GoodsReceipt {
   date        DateTime
   receivedBy  String
   notes       String?
-  items       Json          // [{orderItemId, quantity}]
+  items       Json // [{orderItemId, quantity}]
   order       PurchaseOrder @relation(fields: [orderId], references: [id])
 }
 
@@ -825,20 +831,20 @@ enum PayableStatus {
 }
 
 model AccountPayable {
-  id              Int           @id @default(autoincrement())
-  code            String        @unique
+  id              Int                    @id @default(autoincrement())
+  code            String                 @unique
   supplierId      Int
   purchaseOrderId Int?
   documentRef     String
-  issueDate       DateTime      @db.Date
-  dueDate         DateTime      @db.Date
-  currency        String        @default("PEN")
-  exchangeRate    Decimal       @default(1) @db.Decimal(10, 4)
-  amount          Decimal       @db.Decimal(14, 2)
-  paidAmount      Decimal       @default(0) @db.Decimal(14, 2)
-  status          PayableStatus @default(PENDIENTE)
-  supplier        Supplier      @relation(fields: [supplierId], references: [id])
-  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  issueDate       DateTime               @db.Date
+  dueDate         DateTime               @db.Date
+  currency        String                 @default("PEN")
+  exchangeRate    Decimal                @default(1) @db.Decimal(10, 4)
+  amount          Decimal                @db.Decimal(14, 2)
+  paidAmount      Decimal                @default(0) @db.Decimal(14, 2)
+  status          PayableStatus          @default(PENDIENTE)
+  supplier        Supplier               @relation(fields: [supplierId], references: [id])
+  purchaseOrder   PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
   transactions    FinancialTransaction[]
 }
 
@@ -850,10 +856,10 @@ enum CustomerType {
 }
 
 model Customer {
-  id             Int          @id @default(autoincrement())
-  code           String       @unique
-  type           CustomerType @default(NACIONAL)
-  documentType   String       // RUC, DNI, TAX_ID
+  id             Int                 @id @default(autoincrement())
+  code           String              @unique
+  type           CustomerType        @default(NACIONAL)
+  documentType   String // RUC, DNI, TAX_ID
   documentNumber String
   name           String
   contact        String?
@@ -861,17 +867,21 @@ model Customer {
   phone          String?
   address        String?
   city           String?
-  country        String       @default("Perú")
-  creditDays     Int          @default(0)
-  chainActor     String?      // identidad blockchain de demostración (p. ej. "buyer")
-  active         Boolean      @default(true)
-  isDemo         Boolean      @default(true)
+  country        String              @default("Perú")
+  creditDays     Int                 @default(0)
+  chainActor     String? // identidad blockchain de demostración (p. ej. "buyer")
+  active         Boolean             @default(true)
+  isDemo         Boolean             @default(true)
   quotes         SalesQuote[]
   orders         SalesOrder[]
   receivables    AccountReceivable[]
   specs          QualitySpec[]
   exportOrders   ExportOrder[]
   agreements     SmartAgreement[]
+  shipments      ExportShipment[]
+  claims         Claim[]
+  fsvpContact    String? // información FSVP del importador (EE. UU.)
+  importerNumber String? // número de importador / EIN (ficticio)
 
   @@unique([documentType, documentNumber])
 }
@@ -885,30 +895,30 @@ enum SalesQuoteStatus {
 }
 
 model SalesQuote {
-  id         Int              @id @default(autoincrement())
-  code       String           @unique
-  customerId Int
-  date       DateTime
-  validUntil DateTime         @db.Date
-  currency   String           @default("PEN")
-  priceIncludesTax Boolean    @default(true)
-  taxRate    Decimal          @db.Decimal(6, 4)
-  subtotal   Decimal          @db.Decimal(14, 2)
-  discount   Decimal          @db.Decimal(14, 2)
-  tax        Decimal          @db.Decimal(14, 2)
-  total      Decimal          @db.Decimal(14, 2)
-  status     SalesQuoteStatus @default(BORRADOR)
-  notes      String?
-  customer   Customer         @relation(fields: [customerId], references: [id])
-  items      SalesQuoteItem[]
-  orders     SalesOrder[]
+  id               Int              @id @default(autoincrement())
+  code             String           @unique
+  customerId       Int
+  date             DateTime
+  validUntil       DateTime         @db.Date
+  currency         String           @default("PEN")
+  priceIncludesTax Boolean          @default(true)
+  taxRate          Decimal          @db.Decimal(6, 4)
+  subtotal         Decimal          @db.Decimal(14, 2)
+  discount         Decimal          @db.Decimal(14, 2)
+  tax              Decimal          @db.Decimal(14, 2)
+  total            Decimal          @db.Decimal(14, 2)
+  status           SalesQuoteStatus @default(BORRADOR)
+  notes            String?
+  customer         Customer         @relation(fields: [customerId], references: [id])
+  items            SalesQuoteItem[]
+  orders           SalesOrder[]
 }
 
 model SalesQuoteItem {
   id          Int        @id @default(autoincrement())
   quoteId     Int
   productId   Int
-  unit        String     // KG | SACO
+  unit        String // KG | SACO
   quantity    Decimal    @db.Decimal(14, 3)
   unitPrice   Decimal    @db.Decimal(14, 4)
   discountPct Decimal    @default(0) @db.Decimal(6, 3)
@@ -932,27 +942,27 @@ enum PaymentStatus {
 }
 
 model SalesOrder {
-  id               Int              @id @default(autoincrement())
-  code             String           @unique
+  id               Int                 @id @default(autoincrement())
+  code             String              @unique
   customerId       Int
   quoteId          Int?
   date             DateTime
-  currency         String           @default("PEN")
-  exchangeRate     Decimal          @default(1) @db.Decimal(10, 4)
-  priceIncludesTax Boolean          @default(true)
-  taxRate          Decimal          @db.Decimal(6, 4)
-  subtotal         Decimal          @db.Decimal(14, 2)
-  discountTotal    Decimal          @db.Decimal(14, 2)
-  taxTotal         Decimal          @db.Decimal(14, 2)
-  total            Decimal          @db.Decimal(14, 2)
-  totalKg          Decimal          @db.Decimal(14, 3)
-  status           SalesOrderStatus @default(REGISTRADO)
-  paymentStatus    PaymentStatus    @default(PENDIENTE)
+  currency         String              @default("PEN")
+  exchangeRate     Decimal             @default(1) @db.Decimal(10, 4)
+  priceIncludesTax Boolean             @default(true)
+  taxRate          Decimal             @db.Decimal(6, 4)
+  subtotal         Decimal             @db.Decimal(14, 2)
+  discountTotal    Decimal             @db.Decimal(14, 2)
+  taxTotal         Decimal             @db.Decimal(14, 2)
+  total            Decimal             @db.Decimal(14, 2)
+  totalKg          Decimal             @db.Decimal(14, 3)
+  status           SalesOrderStatus    @default(REGISTRADO)
+  paymentStatus    PaymentStatus       @default(PENDIENTE)
   notes            String?
-  isDemo           Boolean          @default(true)
-  createdAt        DateTime         @default(now())
-  customer         Customer         @relation(fields: [customerId], references: [id])
-  quote            SalesQuote?      @relation(fields: [quoteId], references: [id])
+  isDemo           Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  customer         Customer            @relation(fields: [customerId], references: [id])
+  quote            SalesQuote?         @relation(fields: [quoteId], references: [id])
   items            SalesOrderItem[]
   dispatches       DispatchOrder[]
   documents        SalesDocument[]
@@ -964,65 +974,65 @@ model SalesOrder {
 }
 
 model SalesOrderItem {
-  id          Int        @id @default(autoincrement())
-  orderId     Int
-  productId   Int
-  lotId       Int?
-  unit        String     // KG | SACO
-  quantity    Decimal    @db.Decimal(14, 3)
-  quantityKg  Decimal    @db.Decimal(14, 3)
-  unitPrice   Decimal    @db.Decimal(14, 4)
-  discountPct Decimal    @default(0) @db.Decimal(6, 3)
-  lineTotal   Decimal    @db.Decimal(14, 2)
-  order       SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product    @relation(fields: [productId], references: [id])
-  lot         Lot?       @relation(fields: [lotId], references: [id])
+  id           Int                    @id @default(autoincrement())
+  orderId      Int
+  productId    Int
+  lotId        Int?
+  unit         String // KG | SACO
+  quantity     Decimal                @db.Decimal(14, 3)
+  quantityKg   Decimal                @db.Decimal(14, 3)
+  unitPrice    Decimal                @db.Decimal(14, 4)
+  discountPct  Decimal                @default(0) @db.Decimal(6, 3)
+  lineTotal    Decimal                @db.Decimal(14, 2)
+  order        SalesOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product                @relation(fields: [productId], references: [id])
+  lot          Lot?                   @relation(fields: [lotId], references: [id])
   reservations InventoryReservation[]
 }
 
 /// Comprobante INTERNO de demostración — sin validez tributaria (no es CPE SUNAT).
 model SalesDocument {
-  id        Int        @id @default(autoincrement())
-  code      String     @unique
-  orderId   Int
-  type      String     @default("COMPROBANTE_INTERNO_DEMO")
-  issueDate DateTime
-  total     Decimal    @db.Decimal(14, 2)
-  currency  String
-  legalNote String     @default("Documento interno de demostración. No es un comprobante de pago electrónico ni tiene validez tributaria ante SUNAT.")
-  einvoiceStatus String @default("NO_ENVIADO") // integración futura con OSE/PSE
-  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id             Int        @id @default(autoincrement())
+  code           String     @unique
+  orderId        Int
+  type           String     @default("COMPROBANTE_INTERNO_DEMO")
+  issueDate      DateTime
+  total          Decimal    @db.Decimal(14, 2)
+  currency       String
+  legalNote      String     @default("Documento interno de demostración. No es un comprobante de pago electrónico ni tiene validez tributaria ante SUNAT.")
+  einvoiceStatus String     @default("NO_ENVIADO") // integración futura con OSE/PSE
+  order          SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model AccountReceivable {
-  id           Int           @id @default(autoincrement())
-  code         String        @unique
-  customerId   Int
-  salesOrderId Int?
+  id            Int                    @id @default(autoincrement())
+  code          String                 @unique
+  customerId    Int
+  salesOrderId  Int?
   exportOrderId Int?
-  documentRef  String
-  issueDate    DateTime      @db.Date
-  dueDate      DateTime      @db.Date
-  currency     String        @default("PEN")
-  exchangeRate Decimal       @default(1) @db.Decimal(10, 4)
-  amount       Decimal       @db.Decimal(14, 2)
-  collected    Decimal       @default(0) @db.Decimal(14, 2)
-  status       PaymentStatus @default(PENDIENTE)
-  customer     Customer      @relation(fields: [customerId], references: [id])
-  salesOrder   SalesOrder?   @relation(fields: [salesOrderId], references: [id])
-  exportOrder  ExportOrder?  @relation(fields: [exportOrderId], references: [id])
-  transactions FinancialTransaction[]
+  documentRef   String
+  issueDate     DateTime               @db.Date
+  dueDate       DateTime               @db.Date
+  currency      String                 @default("PEN")
+  exchangeRate  Decimal                @default(1) @db.Decimal(10, 4)
+  amount        Decimal                @db.Decimal(14, 2)
+  collected     Decimal                @default(0) @db.Decimal(14, 2)
+  status        PaymentStatus          @default(PENDIENTE)
+  customer      Customer               @relation(fields: [customerId], references: [id])
+  salesOrder    SalesOrder?            @relation(fields: [salesOrderId], references: [id])
+  exportOrder   ExportOrder?           @relation(fields: [exportOrderId], references: [id])
+  transactions  FinancialTransaction[]
 }
 
 // ============================================================ LOGÍSTICA
 
 model Carrier {
-  id       Int             @id @default(autoincrement())
-  ruc      String          @unique
-  name     String
-  phone    String?
-  active   Boolean         @default(true)
-  vehicles Vehicle[]
+  id         Int             @id @default(autoincrement())
+  ruc        String          @unique
+  name       String
+  phone      String?
+  active     Boolean         @default(true)
+  vehicles   Vehicle[]
   dispatches DispatchOrder[]
 }
 
@@ -1045,25 +1055,25 @@ enum DispatchStatus {
 }
 
 model DispatchOrder {
-  id               Int            @id @default(autoincrement())
-  code             String         @unique
-  salesOrderId     Int
-  carrierId        Int
-  vehicleId        Int
-  weightKg         Decimal        @db.Decimal(14, 3)
-  destination      String
-  departureAt      DateTime?
-  deliveredAt      DateTime?
-  receivedBy       String?
-  evidenceDocId    Int?
-  status           DispatchStatus @default(PREPARACION)
-  inventoryPosted  Boolean        @default(false) // evita doble descuento
-  notes            String?
-  createdAt        DateTime       @default(now())
-  salesOrder       SalesOrder     @relation(fields: [salesOrderId], references: [id])
-  carrier          Carrier        @relation(fields: [carrierId], references: [id])
-  vehicle          Vehicle        @relation(fields: [vehicleId], references: [id])
-  evidenceDoc      Document?      @relation(fields: [evidenceDocId], references: [id], onDelete: SetNull)
+  id              Int            @id @default(autoincrement())
+  code            String         @unique
+  salesOrderId    Int
+  carrierId       Int
+  vehicleId       Int
+  weightKg        Decimal        @db.Decimal(14, 3)
+  destination     String
+  departureAt     DateTime?
+  deliveredAt     DateTime?
+  receivedBy      String?
+  evidenceDocId   Int?
+  status          DispatchStatus @default(PREPARACION)
+  inventoryPosted Boolean        @default(false) // evita doble descuento
+  notes           String?
+  createdAt       DateTime       @default(now())
+  salesOrder      SalesOrder     @relation(fields: [salesOrderId], references: [id])
+  carrier         Carrier        @relation(fields: [carrierId], references: [id])
+  vehicle         Vehicle        @relation(fields: [vehicleId], references: [id])
+  evidenceDoc     Document?      @relation(fields: [evidenceDocId], references: [id], onDelete: SetNull)
 
   @@index([salesOrderId])
 }
@@ -1084,8 +1094,8 @@ enum DocumentType {
 }
 
 model Document {
-  id           Int          @id @default(autoincrement())
-  code         String       @unique
+  id           Int                 @id @default(autoincrement())
+  code         String              @unique
   title        String
   type         DocumentType
   fileName     String
@@ -1096,8 +1106,8 @@ model Document {
   entityType   String
   entityId     String
   uploadedById Int
-  createdAt    DateTime     @default(now())
-  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime            @default(now())
+  uploadedBy   User                @relation(fields: [uploadedById], references: [id])
   inspections  QualityInspection[]
   dispatches   DispatchOrder[]
   requirements ExportRequirement[]
@@ -1136,33 +1146,33 @@ enum ExportStatus {
 }
 
 model ExportOrder {
-  id                 Int          @id @default(autoincrement())
-  code               String       @unique
+  id                 Int                 @id @default(autoincrement())
+  code               String              @unique
   customerId         Int
   partnerId          Int?
   mode               ExportMode
   destinationCountry String
   incoterm           String
-  incotermVersion    String       @default("Incoterms® 2020")
-  currency           String       @default("USD")
-  exchangeRate       Decimal      @db.Decimal(10, 4)
+  incotermVersion    String              @default("Incoterms® 2020")
+  currency           String              @default("USD")
+  exchangeRate       Decimal             @db.Decimal(10, 4)
   productId          Int
   lotId              Int?
-  netWeightKg        Decimal      @db.Decimal(14, 3)
-  grossWeightKg      Decimal      @db.Decimal(14, 3)
-  amount             Decimal      @db.Decimal(14, 2)
-  logisticsCost      Decimal      @default(0) @db.Decimal(14, 2)
-  etd                DateTime?    @db.Date
-  eta                DateTime?    @db.Date
-  status             ExportStatus @default(BORRADOR)
-  collectedAmount    Decimal      @default(0) @db.Decimal(14, 2)
+  netWeightKg        Decimal             @db.Decimal(14, 3)
+  grossWeightKg      Decimal             @db.Decimal(14, 3)
+  amount             Decimal             @db.Decimal(14, 2)
+  logisticsCost      Decimal             @default(0) @db.Decimal(14, 2)
+  etd                DateTime?           @db.Date
+  eta                DateTime?           @db.Date
+  status             ExportStatus        @default(BORRADOR)
+  collectedAmount    Decimal             @default(0) @db.Decimal(14, 2)
   notes              String?
-  isDemo             Boolean      @default(true)
-  createdAt          DateTime     @default(now())
-  customer           Customer     @relation(fields: [customerId], references: [id])
-  partner            ExportPartner? @relation(fields: [partnerId], references: [id])
-  product            Product      @relation(fields: [productId], references: [id])
-  lot                Lot?         @relation(fields: [lotId], references: [id])
+  isDemo             Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  customer           Customer            @relation(fields: [customerId], references: [id])
+  partner            ExportPartner?      @relation(fields: [partnerId], references: [id])
+  product            Product             @relation(fields: [productId], references: [id])
+  lot                Lot?                @relation(fields: [lotId], references: [id])
   requirements       ExportRequirement[]
   receivables        AccountReceivable[]
 }
@@ -1197,16 +1207,16 @@ enum TxType {
 }
 
 model FinancialTransaction {
-  id                Int        @id @default(autoincrement())
-  code              String     @unique
+  id                Int                @id @default(autoincrement())
+  code              String             @unique
   type              TxType
   category          String
   date              DateTime
   description       String
-  currency          String     @default("PEN")
-  amount            Decimal    @db.Decimal(14, 2)
-  exchangeRate      Decimal    @default(1) @db.Decimal(10, 4)
-  amountPen         Decimal    @db.Decimal(14, 2)
+  currency          String             @default("PEN")
+  amount            Decimal            @db.Decimal(14, 2)
+  exchangeRate      Decimal            @default(1) @db.Decimal(10, 4)
+  amountPen         Decimal            @db.Decimal(14, 2)
   campaignId        Int?
   lotId             Int?
   productionOrderId Int?
@@ -1214,15 +1224,15 @@ model FinancialTransaction {
   payableId         Int?
   referenceType     String?
   referenceCode     String?
-  simulated         Boolean    @default(false) // p. ej. cobro con fondos de prueba blockchain
+  simulated         Boolean            @default(false) // p. ej. cobro con fondos de prueba blockchain
   userId            Int
-  createdAt         DateTime   @default(now())
-  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
-  lot               Lot?             @relation(fields: [lotId], references: [id])
-  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+  createdAt         DateTime           @default(now())
+  campaign          Campaign?          @relation(fields: [campaignId], references: [id])
+  lot               Lot?               @relation(fields: [lotId], references: [id])
+  productionOrder   ProductionOrder?   @relation(fields: [productionOrderId], references: [id])
   receivable        AccountReceivable? @relation(fields: [receivableId], references: [id])
   payable           AccountPayable?    @relation(fields: [payableId], references: [id])
-  user              User             @relation(fields: [userId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
 
   @@index([date])
   @@index([type, category])
@@ -1278,26 +1288,28 @@ enum AgreementStatus {
 }
 
 model SmartAgreement {
-  id                Int             @id @default(autoincrement())
-  code              String          @unique // identificador on-chain
-  contractAddress   String?
-  lotId             Int
-  customerId        Int
-  salesOrderId      Int?
-  sellerAddress     String
-  buyerAddress      String
-  quantityKg        Decimal         @db.Decimal(14, 3)
-  amountWei         String
-  referencePen      Decimal         @db.Decimal(14, 2)
-  deadline          DateTime
-  status            AgreementStatus @default(BORRADOR)
-  qualityState      String          @default("PENDIENTE")
-  deliveryState     String          @default("PENDIENTE")
-  lastSyncedAt      DateTime?
-  createdAt         DateTime        @default(now())
-  lot               Lot             @relation(fields: [lotId], references: [id])
-  customer          Customer        @relation(fields: [customerId], references: [id])
-  salesOrder        SalesOrder?     @relation(fields: [salesOrderId], references: [id])
+  id              Int             @id @default(autoincrement())
+  code            String          @unique // identificador on-chain
+  contractAddress String?
+  lotId           Int
+  customerId      Int
+  salesOrderId    Int?
+  sellerAddress   String
+  buyerAddress    String
+  quantityKg      Decimal         @db.Decimal(14, 3)
+  amountWei       String
+  referencePen    Decimal         @db.Decimal(14, 2)
+  deadline        DateTime
+  status          AgreementStatus @default(BORRADOR)
+  qualityState    String          @default("PENDIENTE")
+  deliveryState   String          @default("PENDIENTE")
+  lastSyncedAt    DateTime?
+  createdAt       DateTime        @default(now())
+  lot             Lot             @relation(fields: [lotId], references: [id])
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  salesOrder      SalesOrder?     @relation(fields: [salesOrderId], references: [id])
+  shipmentId      Int?            @unique
+  shipment        ExportShipment? @relation(fields: [shipmentId], references: [id])
 }
 
 enum ChainTxStatus {
@@ -1307,28 +1319,28 @@ enum ChainTxStatus {
 }
 
 model BlockchainTransaction {
-  id              Int           @id @default(autoincrement())
-  txHash          String?       @unique
+  id              Int               @id @default(autoincrement())
+  txHash          String?           @unique
   contractName    String
   contractAddress String
   functionName    String
   args            Json
-  actor           String        // rol on-chain que firmó (seller, buyer, quality…)
+  actor           String // rol on-chain que firmó (seller, buyer, quality…)
   fromAddress     String
-  valueWei        String        @default("0")
-  status          ChainTxStatus @default(PENDIENTE)
+  valueWei        String            @default("0")
+  status          ChainTxStatus     @default(PENDIENTE)
   blockNumber     Int?
   gasUsed         String?
   errorName       String?
   errorMessage    String?
-  minedRevert     Boolean       @default(false) // true = minada y revertida; false = rechazada antes de minar
+  minedRevert     Boolean           @default(false) // true = minada y revertida; false = rechazada antes de minar
   entityType      String?
   entityCode      String?
   scenario        String?
   userId          Int?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime          @default(now())
   confirmedAt     DateTime?
-  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   events          BlockchainEvent[]
 
   @@index([status])
@@ -1336,7 +1348,7 @@ model BlockchainTransaction {
 }
 
 model BlockchainEvent {
-  id              Int      @id @default(autoincrement())
+  id              Int                    @id @default(autoincrement())
   txHash          String
   logIndex        Int
   blockNumber     Int
@@ -1345,7 +1357,7 @@ model BlockchainEvent {
   eventName       String
   args            Json
   transactionId   Int?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime               @default(now())
   transaction     BlockchainTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   @@unique([txHash, logIndex])
@@ -1372,7 +1384,7 @@ model MarketingCampaign {
   id        Int           @id @default(autoincrement())
   code      String        @unique
   name      String
-  channel   String        // Instagram, Facebook, LinkedIn, Email, Web, Feria
+  channel   String // Instagram, Facebook, LinkedIn, Email, Web, Feria
   startDate DateTime      @db.Date
   budgetPen Decimal       @db.Decimal(14, 2)
   leads     Int           @default(0)
@@ -1382,4 +1394,344 @@ model MarketingCampaign {
   createdAt DateTime      @default(now())
 
   @@index([channel])
+}
+
+// ============================================================ EXPORTACIÓN DE FRASCOS 4 oz (TI-10, OP-1 a OP-9)
+
+enum ShipmentStatus {
+  COTIZACION
+  PEDIDO
+  CALIDAD_VALIDADA
+  RESERVADO
+  CONFIRMADO
+  DOCUMENTACION
+  DESPACHADO
+  EN_TRANSITO
+  ARRIBADO
+  ENTREGADO
+  CERRADO
+  ANULADO
+}
+
+/// Pedido internacional de páprika molida en frascos de 113 g y su embarque.
+model ExportShipment {
+  id               Int               @id @default(autoincrement())
+  code             String            @unique // EXP-2026-001
+  customerId       Int
+  lotId            Int? // lote de frascos LOTE-AAAA-MM-NNN (R1: COA aprobado)
+  source           String            @default("ERP") // ERP | PORTAL
+  phase            String            @default("FASE_3") // fase del proyecto
+  projected        Boolean           @default(true) // operación proyectada (no real actual)
+  importer         String
+  broker           String?
+  country          String            @default("Estados Unidos")
+  productCode      String            @default("PT-PAP-FRASCO-113")
+  pallets          Int
+  cases            Int
+  jars             Int
+  netKg            Decimal           @db.Decimal(14, 3)
+  grossKg          Decimal           @db.Decimal(14, 3)
+  unitPriceUsd     Decimal           @db.Decimal(14, 4) // precio por frasco
+  amountUsd        Decimal           @db.Decimal(14, 2)
+  currency         String            @default("USD")
+  exchangeRate     Decimal           @db.Decimal(10, 4)
+  incoterm         String            @default("FCA")
+  incotermVersion  String            @default("Incoterms® 2020")
+  incotermPlace    String            @default("Callao, Perú")
+  deliveryDate     DateTime          @db.Date
+  paymentTerms     String            @default("Smart contract escrow (red local) + pago real por pasarela")
+  status           ShipmentStatus    @default(COTIZACION)
+  marginPct        Decimal?          @db.Decimal(8, 3)
+  marginApproved   Boolean           @default(false)
+  marginApprovedBy String?
+  // Documentos (R2, R3)
+  docsStatus       String            @default("PENDIENTE") // PENDIENTE | RECHAZADO | APROBADO
+  docsErrors       Json?
+  docsApprovedAt   DateTime?
+  declaredNetKg    Decimal?          @db.Decimal(14, 3) // pesos declarados en el packing list
+  declaredGrossKg  Decimal?          @db.Decimal(14, 3)
+  hsCode           String            @default("0904.22.10.00")
+  htsCode          String            @default("0904.22.20")
+  description      String            @default("Pimentón (páprika) molido en frascos de vidrio de 4 oz (113 g)")
+  // Seguimiento aduanero (R4, R5, R6)
+  damNumber        String?
+  damDate          DateTime?
+  channel          String? // VERDE | NARANJA | ROJO
+  levanteDate      DateTime?
+  blNumber         String?
+  manifest         String?
+  container        String?
+  vessel           String?
+  shippingLine     String?
+  shipDate         DateTime?
+  regularizedAt    DateTime?
+  cargoCutoff      DateTime?
+  isfSentAt        DateTime?
+  priorNoticeNo    String?
+  originPort       String            @default("Callao (PECLL)")
+  destinationPort  String            @default("Port of Philadelphia (USPHL)")
+  // Viaje (mapa animado)
+  voyageStartedAt  DateTime?
+  voyageDays       Int               @default(18)
+  voyageProgress   Float             @default(0)
+  arrivedAt        DateTime?
+  deliveredAt      DateTime?
+  confirmedAt      DateTime?
+  paidUsd          Decimal           @default(0) @db.Decimal(14, 2)
+  autopilot        Boolean           @default(true)
+  agentEmail       String? // agente de aduana autorizado para este embarque
+  otif             Boolean?
+  notes            String?
+  isDemo           Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  customer         Customer          @relation(fields: [customerId], references: [id])
+  lot              Lot?              @relation("shipmentLot", fields: [lotId], references: [id])
+  palletsList      Pallet[]
+  costs            ShipmentCost[]
+  compliance       ComplianceItem[]
+  payments         Payment[]
+  claims           Claim[]
+  events           AutomationEvent[]
+  agreement        SmartAgreement?
+
+  @@index([status])
+}
+
+model Pallet {
+  id         Int             @id @default(autoincrement())
+  sscc       String          @unique // (00) SSCC de 18 dígitos
+  lotId      Int
+  shipmentId Int?
+  cases      Int             @default(96)
+  jars       Int             @default(2304)
+  netKg      Decimal         @db.Decimal(14, 3)
+  grossKg    Decimal         @db.Decimal(14, 3)
+  status     String          @default("DISPONIBLE") // DISPONIBLE | RESERVADO | DESPACHADO | DEVUELTO
+  location   String          @default("ALM-PT · Rack A-01")
+  bestBy     DateTime        @db.Date
+  createdAt  DateTime        @default(now())
+  lot        Lot             @relation("palletLot", fields: [lotId], references: [id])
+  shipment   ExportShipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+}
+
+model ShipmentCost {
+  id         Int            @id @default(autoincrement())
+  shipmentId Int
+  concept    String // AGRICOLA, SECADO, MOLIENDA, TRATAMIENTO, ENVASADO, EMBALAJE, LOGISTICO, DOCUMENTAL
+  amountPen  Decimal        @db.Decimal(14, 2)
+  budgetPen  Decimal        @default(0) @db.Decimal(14, 2)
+  dataKind   String         @default("DEMO") // REAL | SUPUESTO | DEMO
+  shipment   ExportShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([shipmentId, concept])
+}
+
+enum ComplianceStatus {
+  CUMPLIDO
+  PENDIENTE
+  POR_VENCER
+  VENCIDO
+  NO_APLICABLE
+  REQUIERE_VALIDACION
+}
+
+/// Registro de cumplimiento FDA / SUNAT (empresa) o ítem del checklist por embarque.
+model ComplianceItem {
+  id           Int              @id @default(autoincrement())
+  code         String
+  name         String
+  authority    String // FDA, SUNAT, DIGESA, SENASA, CBP, MINCETUR, Importador
+  scope        String           @default("EMPRESA") // EMPRESA | EMBARQUE
+  shipmentId   Int?
+  mandatory    Boolean          @default(true)
+  status       ComplianceStatus @default(PENDIENTE)
+  validUntil   DateTime?        @db.Date
+  evidence     String? // nombre del documento de respaldo
+  evidenceHash String?
+  responsible  String?
+  notes        String?
+  updatedAt    DateTime         @updatedAt
+  shipment     ExportShipment?  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([code, shipmentId])
+}
+
+// ============================================================ PAGOS (pasarelas reales + Yape + transferencia)
+
+enum PaymentState {
+  PENDIENTE
+  EN_VERIFICACION
+  APROBADO
+  RECHAZADO
+  REEMBOLSADO
+  EXPIRADO
+}
+
+model Payment {
+  id              Int            @id @default(autoincrement())
+  code            String         @unique
+  shipmentId      Int
+  provider        String // STRIPE | MERCADOPAGO | YAPE | TRANSFERENCIA | SIMULADO
+  method          String // TARJETA | YAPE | TRANSFERENCIA | SWIFT
+  currency        String
+  amount          Decimal        @db.Decimal(14, 2)
+  status          PaymentState   @default(PENDIENTE)
+  livemode        Boolean        @default(false)
+  externalId      String?
+  checkoutUrl     String?
+  operationNumber String?
+  payerName       String?
+  payerEmail      String?
+  voucherName     String?
+  voucherHash     String?
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  raw             Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  shipment        ExportShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([provider, externalId])
+}
+
+// ============================================================ LOGÍSTICA INVERSA
+
+model Claim {
+  id          Int             @id @default(autoincrement())
+  code        String          @unique // RMA-2026-001
+  shipmentId  Int?
+  customerId  Int
+  lotCode     String?
+  type        String // CALIDAD | ROTURA | FALTANTE | ETIQUETADO | RETRASO | OTRO
+  description String
+  jars        Int             @default(0)
+  status      String          @default("ABIERTO") // ABIERTO | EN_EVALUACION | APROBADO | RECHAZADO | CERRADO
+  disposition String? // REPOSICION | NOTA_CREDITO | REPROCESO | DESTRUCCION | COMPOSTAJE | RECICLAJE
+  creditUsd   Decimal         @default(0) @db.Decimal(14, 2)
+  source      String          @default("ERP")
+  resolution  String?
+  openedAt    DateTime        @default(now())
+  closedAt    DateTime?
+  shipment    ExportShipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  customer    Customer        @relation(fields: [customerId], references: [id])
+}
+
+model CircularRecord {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @db.Date
+  type      String // SACO_REUTILIZADO | PALETA_RETORNABLE | COMPOST | RECICLAJE_VIDRIO | RECICLAJE_CARTON | RECICLAJE_PLASTICO | RESIDUO_PELIGROSO | PRODUCTO_DEVUELTO
+  quantity  Decimal  @db.Decimal(14, 3)
+  unit      String
+  partner   String?
+  reference String?
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model RecallDrill {
+  id         Int       @id @default(autoincrement())
+  code       String    @unique
+  lotCode    String
+  reason     String
+  affected   Json
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  minutes    Float?
+  simulated  Boolean   @default(true)
+}
+
+// ============================================================ RESPONSABILIDAD SOCIAL (Plan RS, 31 proyectos)
+
+model RsProject {
+  id           Int     @id @default(autoincrement())
+  code         String  @unique // PE-01, PA-04, PS-03, PEt-05, PT-01
+  axis         String // ECONOMICO | AMBIENTAL | SOCIAL | ETICO | TRANSVERSAL
+  name         String
+  budgetPen    Decimal @db.Decimal(14, 2)
+  year1Pen     Decimal @db.Decimal(14, 2)
+  year2Pen     Decimal @db.Decimal(14, 2)
+  executedPen  Decimal @default(0) @db.Decimal(14, 2)
+  source       String // PROP | FOND | CRED | ASOC
+  expenseClass String // OBL | EST | VOL
+  responsible  String
+  stage        Int     @default(1) // etapa de liberación 1-3
+  progressPct  Int     @default(0)
+  status       String  @default("PLANIFICADO") // PLANIFICADO | EN_CURSO | COMPLETADO | POSTERGADO
+  gri          String?
+}
+
+model RsIndicator {
+  id            Int     @id @default(autoincrement())
+  code          String  @unique
+  axis          String
+  name          String
+  unit          String
+  baseline      Float?
+  target12      Float
+  target24      Float
+  current       Float?
+  lowerIsBetter Boolean @default(false)
+  responsible   String
+  source        String? // de dónde se alimenta automáticamente
+}
+
+// ============================================================ IA, AUTOMATIZACIÓN
+
+model AiQuery {
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  channel     String    @default("ERP") // ERP | PORTAL
+  tool        String    @default("CHAT") // CHAT | OCR | COMPARAR | PRONOSTICO | REDACCION | ANOMALIAS
+  question    String
+  answer      String
+  sources     Json?
+  mode        String // CLAUDE | LOCAL
+  validatedBy String?
+  validatedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model AutomationEvent {
+  id         Int             @id @default(autoincrement())
+  shipmentId Int?
+  rule       String
+  message    String
+  level      String          @default("info") // info | success | warning | danger
+  chain      Boolean         @default(false) // true = respaldado por una transacción confirmada
+  txHash     String?
+  createdAt  DateTime        @default(now())
+  shipment   ExportShipment? @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+}
+
+/// Panel de análisis de exportación (OP-8): genera el COA de demostración (no oficial).
+model LabAnalysis {
+  id             Int       @id @default(autoincrement())
+  code           String    @unique
+  lotId          Int
+  laboratory     String
+  analysisDate   DateTime
+  asta           Float?
+  moisturePct    Float?
+  aw             Float?
+  salmonella     String    @default("AUSENTE") // AUSENTE | PRESENTE
+  ecoli          Float? // UFC/g
+  moldsYeasts    Float? // UFC/g
+  aflatoxinB1    Float? // µg/kg
+  aflatoxinTotal Float? // µg/kg
+  ochratoxinA    Float? // µg/kg
+  bannedDyes     String    @default("NO_DETECTADO") // NO_DETECTADO | DETECTADO (Sudan I-IV, etc.)
+  foreignMatter  String    @default("CONFORME")
+  metalDetection String    @default("CONFORME")
+  netWeightG     Float?
+  evaluation     Json?
+  result         String    @default("EN_EVALUACION") // EN_EVALUACION | RETENIDO | APROBADO | RECHAZADO
+  approvedBy     String?
+  approvedAt     DateTime?
+  evidence       String?
+  coaHash        String?
+  createdAt      DateTime  @default(now())
+  lot            Lot       @relation(fields: [lotId], references: [id])
 }

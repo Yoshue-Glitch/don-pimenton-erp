@@ -22,6 +22,19 @@ export const PERMISSIONS: { code: string; module: string; action: string; descri
   ["demo.run", "Ejecutar y reiniciar la demostración"],
   ["settings.manage", "Configurar el sistema y módulos"], ["users.manage", "Gestionar usuarios y permisos"],
   ["audit.read", "Consultar auditoría"],
+  ["trade.read", "Ver pedidos de exportación, paletas y embarques"], ["trade.write", "Gestionar pedidos de exportación, envasado y paletas"],
+  ["trade.approve", "Aprobar márgenes bajo el piso y confirmaciones comerciales (Gerencia)"],
+  ["docs.read", "Ver documentos de exportación"], ["docs.write", "Generar y validar el paquete documental"], ["docs.approve", "Aprobar el paquete documental"],
+  ["customs.read", "Ver seguimiento aduanero (DAM, B/L)"], ["customs.write", "Registrar DAM, canal, levante, B/L y regularización"],
+  ["compliance.read", "Ver cumplimiento FDA / SUNAT"], ["compliance.write", "Actualizar registros y evidencias de cumplimiento"],
+  ["costs.read", "Ver costos y márgenes internos"], ["costs.write", "Registrar costos y presupuestos por embarque"],
+  ["kpi.read", "Ver indicadores KPI (TI-14)"],
+  ["ai.use", "Usar el asistente de IA"], ["ai.validate", "Validar recomendaciones de la IA"],
+  ["rs.read", "Ver el plan de Responsabilidad Social"], ["rs.write", "Actualizar avance del plan de RS"],
+  ["reverse.read", "Ver logística inversa (reclamos, devoluciones, retiro)"], ["reverse.write", "Gestionar reclamos, devoluciones y economía circular"],
+  ["payments.read", "Ver pagos y cobranza"], ["payments.verify", "Verificar pagos Yape / transferencia"],
+  ["lab.write", "Registrar análisis de laboratorio de exportación"], ["lab.approve", "Aprobar o rechazar el COA de exportación"],
+  ["portal.access", "Acceso al portal del comprador"],
 ].map(([code, description]) => {
   const parts = code.split(".");
   return { code, module: parts[0], action: parts.slice(1).join("."), description };
@@ -29,27 +42,36 @@ export const PERMISSIONS: { code: string; module: string; action: string; descri
 
 const ALL = PERMISSIONS.map((p) => p.code);
 const READ = ALL.filter((c) => c.endsWith(".read"));
+const EXPORT_READ = ["trade.read", "docs.read", "customs.read", "compliance.read", "kpi.read", "ai.use", "rs.read", "reverse.read"];
 
 export const ROLES: { code: string; name: string; description: string; chainActor?: string; permissions: string[] }[] = [
-  { code: "ADMIN", name: "Gerencia General (acceso total)", description: "Titular de la Gerencia General: acceso total y configuración", permissions: ALL },
+  { code: "ADMIN", name: "Gerencia General (acceso total)", description: "Titular de la Gerencia General: acceso total y configuración", permissions: ALL.filter((p) => p !== "portal.access") },
   {
     code: "GERENCIA", name: "Administración del sistema", description: "Aprobaciones, supervisión y arbitraje de disputas", chainActor: "arbiter",
-    permissions: [...READ, "purchases.approve", "inventory.adjust.approve", "quality.approve", "hr.sensitive", "blockchain.write", "blockchain.arbitrate", "demo.run", "documents.write"],
+    permissions: [...READ, "purchases.approve", "inventory.adjust.approve", "quality.approve", "hr.sensitive", "blockchain.write", "blockchain.arbitrate", "demo.run", "documents.write", "trade.approve", "costs.write", "ai.validate", "rs.write", "payments.verify", "lab.approve"],
   },
   { code: "AGRICOLA", name: "Responsable agrícola", description: "Parcelas, campañas y cosechas",
     permissions: ["dashboard.read", "agri.read", "agri.write", "production.read", "inventory.read", "purchases.read", "purchases.write"] },
   { code: "PRODUCCION", name: "Responsable de producción", description: "Procesamiento de lotes", chainActor: "registrar",
     permissions: ["dashboard.read", "agri.read", "production.read", "production.write", "quality.read", "inventory.read", "blockchain.read", "blockchain.write", "purchases.read", "purchases.write"] },
   { code: "CALIDAD", name: "Responsable de calidad", description: "Inspecciones, COA y liberación de lotes", chainActor: "quality",
-    permissions: ["dashboard.read", "production.read", "quality.read", "quality.write", "quality.approve", "quality.specs", "inventory.read", "blockchain.read", "blockchain.write", "documents.write", "reports.read"] },
+    permissions: ["dashboard.read", "production.read", "quality.read", "quality.write", "quality.approve", "quality.specs", "inventory.read", "blockchain.read", "blockchain.write", "documents.write", "reports.read", ...EXPORT_READ, "lab.write", "lab.approve", "reverse.write"] },
   { code: "ALMACEN", name: "Responsable de almacén", description: "Inventarios, kardex y recepciones",
-    permissions: ["dashboard.read", "inventory.read", "inventory.write", "production.read", "quality.read", "purchases.read", "purchases.receive", "logistics.read"] },
+    permissions: ["dashboard.read", "inventory.read", "inventory.write", "production.read", "quality.read", "purchases.read", "purchases.receive", "logistics.read", "trade.read", "trade.write", "docs.read", "kpi.read", "ai.use", "reverse.read", "reverse.write"] },
   { code: "COMERCIAL", name: "Responsable comercial", description: "Clientes, pedidos, despachos y acuerdos", chainActor: "seller",
     permissions: ["dashboard.read", "sales.read", "sales.write", "logistics.read", "logistics.write", "inventory.read", "quality.read", "blockchain.read", "blockchain.write", "exports.read", "marketing.read", "marketing.write", "documents.write", "reports.read"] },
   { code: "FINANZAS", name: "Responsable financiero", description: "Ingresos, egresos, cuentas y presupuestos",
-    permissions: ["dashboard.read", "finance.read", "finance.write", "sales.read", "purchases.read", "purchases.pay", "hr.read", "hr.sensitive", "reports.read", "blockchain.read"] },
-  { code: "EXPORTACIONES", name: "Responsable de exportaciones", description: "Operaciones internacionales y documentación",
-    permissions: ["dashboard.read", "exports.read", "exports.write", "marketing.read", "marketing.write", "sales.read", "quality.read", "inventory.read", "documents.write", "reports.read", "blockchain.read"] },
+    permissions: ["dashboard.read", "finance.read", "finance.write", "sales.read", "purchases.read", "purchases.pay", "hr.read", "hr.sensitive", "reports.read", "blockchain.read", "costs.read", "costs.write", "payments.read", "payments.verify", "kpi.read", "trade.read", "ai.use", "rs.read"] },
+  { code: "EXPORTACIONES", name: "Jefe de Exportaciones", description: "Pedidos internacionales, aprobación documental, cumplimiento FDA/SUNAT",  chainActor: "seller",
+    permissions: ["dashboard.read", "exports.read", "exports.write", "marketing.read", "marketing.write", "sales.read", "quality.read", "inventory.read", "documents.write", "reports.read", "blockchain.read", "blockchain.write", ...EXPORT_READ, "trade.write", "docs.write", "docs.approve", "customs.write", "compliance.write", "costs.read", "payments.read", "reverse.write", "rs.write", "ai.validate", "production.read", "agri.read", "logistics.read"] },
+  { code: "LOGISTICA", name: "Asistente de logística y documentación", description: "Documentos de exportación y DAM", chainActor: "logistics",
+    permissions: ["dashboard.read", "inventory.read", "production.read", "quality.read", "logistics.read", "logistics.write", "documents.write", "reports.read", "blockchain.read", ...EXPORT_READ, "docs.write", "customs.write", "trade.read", "reverse.write"] },
+  { code: "AGENTE_ADUANA", name: "Agente de aduana (externo)", description: "Solo sus embarques autorizados: DAM, canal, levante, regularización. Sin costos.",
+    permissions: ["customs.read", "customs.write", "docs.read", "compliance.read"] },
+  { code: "BROKER", name: "Food broker (externo, EE. UU.)", description: "Consulta de pedidos, COA y documentos de su cliente; sin costos internos",
+    permissions: ["portal.access", "docs.read"] },
+  { code: "COMPRADOR", name: "Comprador / importador (portal)", description: "Portal del comprador vinculado al ERP y al smart contract",
+    permissions: ["portal.access"] },
   { code: "AUDITOR", name: "Auditor (solo lectura)", description: "Consulta de todos los módulos y auditoría",
     permissions: [...READ, "audit.read"] },
 ];

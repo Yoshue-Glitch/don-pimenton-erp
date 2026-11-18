@@ -12,13 +12,13 @@ import { STAGE_LABEL } from "./production";
 
 export const reportsRouter = Router();
 
-const RED = "#A52A2A", GREEN = "#1C3F2B", DARK = "#1F2937", GOLD = "#D9A441";
-const fmt = (v: any, d = 2) => Number(v ?? 0).toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d });
-const day = (d?: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "—");
+export const RED = "#A52A2A", GREEN = "#1C3F2B", DARK = "#1F2937", GOLD = "#D9A441";
+export const fmt = (v: any, d = 2) => Number(v ?? 0).toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d });
+export const day = (d?: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "—");
 // Helvetica (WinAnsi) no incluye algunos símbolos: se sustituyen.
-const safe = (s: unknown) => String(s ?? "—").replace(/→/g, "->").replace(/[—–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/[^\x00-\xFF]/g, "");
+export const safe = (s: unknown) => String(s ?? "—").replace(/→/g, "->").replace(/[—–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/[^\x00-\xFF]/g, "");
 
-function header(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
+export function header(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
   doc.rect(0, 0, doc.page.width, 70).fill(GREEN);
   doc.rect(0, 70, doc.page.width, 3).fill(RED);
   doc.fillColor("#FFFFFF").fontSize(18).font("Helvetica-Bold").text("DON PIMENTÓN ERP", 40, 18);
@@ -28,7 +28,7 @@ function header(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
   doc.moveDown(1.2);
 }
 
-function section(doc: PDFKit.PDFDocument, title: string) {
+export function section(doc: PDFKit.PDFDocument, title: string) {
   if (doc.y > doc.page.height - 170) doc.addPage();
   doc.moveDown(0.6);
   const y = doc.y;
@@ -38,7 +38,7 @@ function section(doc: PDFKit.PDFDocument, title: string) {
   doc.y = y + 24;
 }
 
-function kv(doc: PDFKit.PDFDocument, rows: [string, unknown][]) {
+export function kv(doc: PDFKit.PDFDocument, rows: [string, unknown][]) {
   for (const [k, v] of rows) {
     if (doc.y > doc.page.height - 85) doc.addPage();
     const y = doc.y;
@@ -48,7 +48,7 @@ function kv(doc: PDFKit.PDFDocument, rows: [string, unknown][]) {
   }
 }
 
-function table(doc: PDFKit.PDFDocument, cols: { h: string; w: number }[], rows: unknown[][]) {
+export function table(doc: PDFKit.PDFDocument, cols: { h: string; w: number }[], rows: unknown[][]) {
   let x = 46;
   if (doc.y > doc.page.height - 110) doc.addPage();
   const y0 = doc.y;
@@ -67,7 +67,7 @@ function table(doc: PDFKit.PDFDocument, cols: { h: string; w: number }[], rows: 
   doc.fontSize(9);
 }
 
-function footer(doc: PDFKit.PDFDocument, note: string) {
+export function footer(doc: PDFKit.PDFDocument, note: string) {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
@@ -79,7 +79,7 @@ function footer(doc: PDFKit.PDFDocument, note: string) {
   }
 }
 
-function send(res: Response, doc: PDFKit.PDFDocument, filename: string) {
+export function send(res: Response, doc: PDFKit.PDFDocument, filename: string) {
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   doc.pipe(res);

@@ -20,6 +20,7 @@ export const ACTORS = {
   arbiter: { index: 5, label: "Gerencia (árbitro)" },
   intruder: { index: 6, label: "Actor NO autorizado (prueba negativa)" },
   registrar: { index: 7, label: "Producción (registro de lotes)" },
+  importer: { index: 8, label: "Importador Demo USA (comprador ficticio de exportación)" },
 } as const;
 export type Actor = keyof typeof ACTORS;
 export type ContractName = "PaprikaTraceability" | "PaprikaTradeAgreement";
@@ -49,6 +50,8 @@ const ERROR_ES: Record<string, string> = {
   CancellationNotAllowed: "Las reglas del contrato no permiten cancelar en este momento",
   TransferFailed: "Falló la transferencia de fondos de prueba",
   ReentrancyGuardReentrantCall: "Llamada reentrante bloqueada",
+  MilestoneDuplicated: "Ese hito de trazabilidad ya fue registrado para el lote",
+  NotAuthorizedActor: "La cuenta no está autorizada para registrar hitos de trazabilidad",
 };
 
 let provider: ethers.JsonRpcProvider | null = null;
@@ -281,7 +284,7 @@ export async function deployContracts(userId?: number) {
     const trace = await deployOne("PaprikaTraceability", [admin.address]);
     const trade = await deployOne("PaprikaTradeAgreement", [admin.address, trace.address]);
     const grants: [ethers.Contract, string, Actor][] = [
-      [trace.c, "REGISTRAR_ROLE", "registrar"], [trace.c, "QUALITY_ROLE", "quality"],
+      [trace.c, "REGISTRAR_ROLE", "registrar"], [trace.c, "QUALITY_ROLE", "quality"], [trace.c, "LOGISTICS_ROLE", "logistics"],
       [trade.c, "SELLER_ROLE", "seller"], [trade.c, "QUALITY_ROLE", "quality"],
       [trade.c, "LOGISTICS_ROLE", "logistics"], [trade.c, "ARBITER_ROLE", "arbiter"],
     ];
@@ -369,3 +372,11 @@ export async function readLot(code: string) {
 export const ZERO32 = ethers.ZeroHash;
 export const parseEth = (v: string) => ethers.parseEther(v);
 export const formatEth = (v: bigint) => ethers.formatEther(v);
+
+export async function readMilestones(code: string) {
+  const { c } = await contract("PaprikaTraceability");
+  try {
+    const ms = await c.getMilestones(code);
+    return (ms as any[]).map((m) => ({ stage: m.stage as string, docHash: m.docHash as string, actor: m.actor as string, timestamp: new Date(Number(m.timestamp) * 1000).toISOString() }));
+  } catch { return []; }
+}

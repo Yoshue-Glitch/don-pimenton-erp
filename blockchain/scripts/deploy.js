@@ -14,6 +14,7 @@ const ACTORS = {
   arbiter: 5,    // Gerencia (árbitro de disputas)
   intruder: 6,   // Actor no autorizado (escenario negativo)
   registrar: 7,  // Producción (registra lotes)
+  importer: 8,   // Importador Demo USA (exportación)
 };
 
 async function main() {
@@ -28,6 +29,7 @@ async function main() {
   const grants = [
     [trace, "REGISTRAR_ROLE", a.registrar],
     [trace, "QUALITY_ROLE", a.quality],
+    [trace, "LOGISTICS_ROLE", a.logistics],
     [trade, "SELLER_ROLE", a.seller],
     [trade, "QUALITY_ROLE", a.quality],
     [trade, "LOGISTICS_ROLE", a.logistics],
